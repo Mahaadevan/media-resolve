@@ -1,5 +1,6 @@
 const {FFmpeg}=FFmpegWASM,{fetchFile,toBlobURL}=FFmpegUtil,{animate,stagger}=Motion;
 const $=s=>document.querySelector(s),CDN='https://cdn.jsdelivr.net/npm/';
+const html=document.documentElement,lite=()=>html.hasAttribute('data-lite'),A=(t,k,o)=>lite()?null:animate(t,k,o);
 const prof=(p,px)=>['-c:v','prores_ks','-profile:v',p,'-pix_fmt',px];
 const dnx=(p,px)=>['-c:v','dnxhd','-profile:v',p,'-pix_fmt',px];
 const VC={dnx_lb:['DNxHR LB (proxy)',dnx('dnxhr_lb','yuv422p')],dnx_sq:['DNxHR SQ',dnx('dnxhr_sq','yuv422p')],dnx_hq:['DNxHR HQ (8-bit)',dnx('dnxhr_hq','yuv422p')],dnx_hqx:['DNxHR HQX (10-bit)',dnx('dnxhr_hqx','yuv422p10le')],dnx_444:['DNxHR 444 (10-bit)',dnx('dnxhr_444','yuv444p10le')],
@@ -23,13 +24,13 @@ fb:P('Facebook','16:9 1920×1080, 30 fps.',{r:'1920:1080',f:'30'}),
 wav:P('Audio · WAV 24-bit','48 kHz PCM — safest audio for Resolve Free on Linux.',{v:'none',a:'pcm24',c:'wav',sr:'48000'}),
 aiff:P('Audio · AIFF','48 kHz PCM, big-endian.',{v:'none',a:'pcm24',c:'aiff',sr:'48000'}),
 flac:P('Audio · FLAC','Lossless, smaller than WAV.',{v:'none',a:'pcm24',c:'flac',sr:'48000'})};
-const FEATS=['Any input format|Everything ffmpeg can read','Platform presets|YouTube, Reels, TikTok, X, Facebook…','Private|Files never leave your browser','Format menus|Codec, audio, container, size, fps','Dev menu|Command, logs, stats, file analysis','Glass UI|Dark / light, Resolve gradient'];
+const FEATS=['Any input format|Everything ffmpeg can read','Platform presets|YouTube, Reels, TikTok, X, Facebook…','Private|Files never leave your browser','Format menus|Codec, audio, container, size, fps','Dev menu|Command, logs, stats, file analysis','Audio spectrum|ASCII ring that reacts to your music','Lite mode|One switch turns off blur, glow and animations','Glass UI|Dark / light, Resolve gradient'];
 const fill=(id,o)=>$(id).innerHTML=Object.entries(o).map(([k,v])=>`<option value="${k}">${Array.isArray(v)?v[0]:v}</option>`).join('');
 fill('#vc',VC);fill('#ac',AC);fill('#ct',CT);fill('#res',RES);fill('#fps',FPS);fill('#fit',FIT);fill('#sr',SR);
 $('#featList').innerHTML=FEATS.map(f=>{const[a,b]=f.split('|');return`<div class="glass"><b>${a}</b><br><span class="muted">${b}</span></div>`}).join('');
 let items=[],sel=-1,ff,file,loaded=false,busy=false,url,lines=[],t0=0,inSize=0,outSize=0,elapsed=0,cap=null;const plyr=new Plyr('#player');
 const errMsg=e=>e instanceof Error?e.message:typeof e==='string'?e:(e&&e.message)||(()=>{try{return JSON.stringify(e)}catch{return''}})()||'Unknown error';
-function toast(m,e){const t=document.createElement('div');t.className='toast'+(e?' err':'');t.textContent=m;$('#toasts').append(t);animate(t,{opacity:[0,1],x:[40,0]},{duration:.3});setTimeout(()=>t.remove(),4500)}
+function toast(m,e){const t=document.createElement('div');t.className='toast'+(e?' err':'');t.textContent=m;$('#toasts').append(t);A(t,{opacity:[0,1],transform:['translateX(40px)','translateX(0px)']},{duration:.3});setTimeout(()=>t.remove(),4500)}
 function log(s,c){const d=document.createElement('div');c=c||(/error|invalid|fail|no such|unknown/i.test(s)?'err':/warn/i.test(s)?'warn':'');d.className=c;const l=`[${new Date().toLocaleTimeString()}] ${s}`;d.textContent=l;lines.push(l);const L=$('#log');L.append(d);while(L.childElementCount>2000)L.firstChild.remove();L.scrollTop=L.scrollHeight}
 function stats(){const mb=n=>n?(n/1048576).toFixed(2)+' MB':'–';$('#stats').innerHTML=[['Engine',loaded?'ready':'not loaded'],['Isolated',self.crossOriginIsolated?'yes':'no (single thread)'],['Input',mb(inSize)],['Output',mb(outSize)],['Ratio',inSize&&outSize?(outSize/inSize).toFixed(2)+'×':'–'],['Elapsed',elapsed?(elapsed/1000).toFixed(1)+' s':'–']].map(([a,b])=>`<div>${a}<b>${b}</b></div>`).join('')}
 function mk(){ff=new FFmpeg();ff.on('log',({message})=>{log(message);if(cap)cap.push(message)});ff.on('progress',({progress})=>{const p=Math.min(100,Math.max(0,Math.round((progress||0)*100)));$('#pb').style.width=p+'%';$('#pt').textContent=p+'%'})}mk();
@@ -56,9 +57,9 @@ function rotv(){return items[sel]?items[sel].rot:''}
 const STL={'':'Pending',run:'Converting…',done:'Done',err:'Failed'};
 const upd=()=>{['#go','#frame','#analyze'].forEach(s=>$(s).disabled=busy||!file);$('#all').disabled=busy||!items.length};
 function render(){$('#queue').innerHTML=items.length?items.map((it,i)=>`<div class="q${i===sel?' on':''}" data-i="${i}"><span class="qn">${esc(it.f.name)}</span><small>${(it.f.size/1048576).toFixed(1)} MB</small><select data-r="${i}" title="Rotate this file">${Object.entries(ROT).map(([k,v])=>`<option value="${k}"${k===it.rot?' selected':''}>${v==='None'?'↻ No rotation':'↻ '+v}</option>`).join('')}</select><em class="st ${it.st}">${STL[it.st]}</em><b data-x="${i}" title="Remove">×</b></div>`).join(''):'<p class="muted">No media yet — add files or drop them above.</p>'}
-function choose(i){sel=i;file=items[i]&&items[i].f;render();if(!file){$('#fname').textContent='No file selected';$('#info').textContent='File info appears after loading a file.';try{plyr.stop()}catch{}upd();refresh();return}
+function choose(i){sel=i;file=items[i]&&items[i].f;render();if(!file){$('#fname').textContent='No file selected';$('#info').textContent='File info appears after loading a file.';try{plyr.stop()}catch{}spec.mode(false);upd();refresh();return}
 inSize=file.size;outSize=0;elapsed=0;$('#fname').textContent=items.length>1?`${items.length} files queued`:file.name;if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);
-plyr.source={type:'video',sources:[{src:url,type:file.type||'video/mp4'}]};$('#info').textContent=`${file.name}\n${(file.size/1048576).toFixed(1)} MB · ${file.type||'unknown type'}`;log(`Selected ${file.name} (${file.size} bytes, ${file.type||'?'})`,'ok');
+spec.mode(isAud(file));plyr.source={type:'video',sources:[{src:url,type:file.type||'video/mp4'}]};$('#info').textContent=`${file.name}\n${(file.size/1048576).toFixed(1)} MB · ${file.type||'unknown type'}`;log(`Selected ${file.name} (${file.size} bytes, ${file.type||'?'})`,'ok');
 if(isAud(file)&&$('#vc').value!=='none')$('#presets [data-k=wav]').click();upd();refresh();stats()}
 function addFiles(l){let n=0;for(const f of l){if(!/^(video|audio)\//.test(f.type)&&!OKX.test(f.name)){toast('Skipped '+f.name,1);continue}items.push({f,rot:'',st:''});n++}if(!n)return;toast(n+' file'+(n>1?'s':'')+' added');sel<0?choose(items.length-n):(render(),upd())}
 $('#queue').onclick=e=>{if(busy||e.target.closest('select'))return;const x=e.target.dataset.x;if(x!==undefined){items.splice(+x,1);choose(items.length?Math.min(sel>+x?sel-1:sel,items.length-1):-1)}else{const q=e.target.closest('[data-i]');q&&choose(+q.dataset.i)}};
@@ -75,7 +76,7 @@ async function run(args,out,mime,name,after){if(!file)return toast('Choose a fil
 log('ffmpeg '+args.join(' '),'ok');
 try{await load();await ff.writeFile(IN(),await fetchFile(file));const code=await ff.exec(args);if(code!==0)throw new Error(`ffmpeg exited with code ${code} — see Dev ▸ log`);
 let data;try{data=await ff.readFile(out)}catch{throw new Error('No output file was produced — see Dev ▸ log')}if(!data||!data.length)throw new Error('Output is empty — encoder may be missing in this wasm build');
-const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([data],{type:mime}));l.download=name;l.className='btn';l.textContent='Download '+name;$('#out').append(l);animate(l,{opacity:[0,1],y:[12,0]});
+const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([data],{type:mime}));l.download=name;l.className='btn';l.textContent='Download '+name;$('#out').append(l);A(l,{opacity:[0,1],transform:['translateY(12px)','translateY(0px)']});
 outSize=data.length;elapsed=performance.now()-t0;$('#pb').style.width='100%';$('#pt').textContent='100%';log(`Done in ${(elapsed/1000).toFixed(1)} s → ${name} (${outSize} bytes)`,'ok');toast('Done ✔');return true}
 catch(e){const m=errMsg(e);log('ERROR: '+m,'err');toast('Failed: '+m+(/memory|abort|out of bounds/i.test(m)?' (file may be too large for wasm)':''),1);await reset();return false}
 finally{try{await ff.deleteFile(IN())}catch{}try{await ff.deleteFile(out)}catch{}setBusy(false);stats()}}
@@ -88,7 +89,7 @@ const a=RTX[rot]||0,w=v.videoWidth,h=v.videoHeight,c=document.createElement('can
 return new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(new Error('Canvas export failed')),img==='png'?'image/png':'image/jpeg',.95))}
 $('#frame').onclick=async()=>{if(!file||busy)return;const img=$('#fimg').value,raw=$('#ft').value,rot=rotv(),t=raw===''?(plyr.currentTime||0):parseFloat(raw);if(!isFinite(t)||t<0)return toast('Invalid time',1);
 const name=`${file.name.replace(/\.[^.]+$/,'')}_${t.toFixed(2)}s.${img}`;
-try{const blob=await grab(t,img,rot),l=document.createElement('a');l.href=URL.createObjectURL(blob);l.download=name;l.className='btn';l.textContent='Download '+name;$('#out').append(l);animate(l,{opacity:[0,1],y:[12,0]});toast('Frame extracted ✔');log(`Frame saved ${name} (${blob.size} bytes)`,'ok');return}
+try{const blob=await grab(t,img,rot),l=document.createElement('a');l.href=URL.createObjectURL(blob);l.download=name;l.className='btn';l.textContent='Download '+name;$('#out').append(l);A(l,{opacity:[0,1],transform:['translateY(12px)','translateY(0px)']});toast('Frame extracted ✔');log(`Frame saved ${name} (${blob.size} bytes)`,'ok');return}
 catch(e){log('Canvas capture unavailable ('+errMsg(e)+') — using ffmpeg','warn')}
 const out='frame.'+img;run(['-hide_banner','-loglevel',$('#ll').value,'-i',IN(),'-ss',t.toFixed(3),...(rot?['-vf',rot]:[]),'-frames:v','1','-update','1',...(img==='jpg'?['-pix_fmt','yuvj420p','-q:v','2']:['-pix_fmt','rgb24']),out],out,img==='png'?'image/png':'image/jpeg',name)};
 $('#analyze').onclick=async()=>{if(busy||!file)return;setBusy(true);cap=[];try{await load();await ff.writeFile(IN(),await fetchFile(file));await ff.exec(['-hide_banner','-i',IN()]);
@@ -103,8 +104,60 @@ function tip(el){tt.textContent=el.dataset.tip;tt.style.opacity=1;const r=el.get
 document.addEventListener('mouseover',e=>{const el=e.target.closest('[data-tip]');el?tip(el):tt.style.opacity=0});document.addEventListener('focusin',e=>{const el=e.target.closest('[data-tip]');el&&tip(el)});document.addEventListener('focusout',()=>tt.style.opacity=0);document.addEventListener('scroll',()=>tt.style.opacity=0,true);
 $('#themeT').onclick=()=>{const h=document.documentElement;h.dataset.theme=h.dataset.theme==='dark'?'light':'dark';try{localStorage.theme=h.dataset.theme}catch{}};
 try{document.documentElement.dataset.theme=localStorage.theme||'dark'}catch{}
-animate('.hero > *, .card',{opacity:[0,1],y:[24,0]},{delay:stagger(.08),duration:.6});stats();
-document.addEventListener('pointerdown',e=>{const b=e.target.closest('.btn,.presets button,.ico');if(!b||b.disabled)return;const r=b.getBoundingClientRect(),s=Math.max(r.width,r.height)*2,p=document.createElement('span');p.className='rip';p.style.cssText=`width:${s}px;height:${s}px;left:${e.clientX-r.left-s/2}px;top:${e.clientY-r.top-s/2}px`;b.append(p);setTimeout(()=>p.remove(),700)});
-(()=>{let x=innerWidth/2,y=innerHeight/3,tx=x,ty=y,run=false;const s=document.documentElement.style;
-const f=()=>{x+=(tx-x)*.12;y+=(ty-y)*.12;s.setProperty('--mx',x+'px');s.setProperty('--my',y+'px');run=Math.abs(tx-x)>.2||Math.abs(ty-y)>.2;if(run)requestAnimationFrame(f)};
-addEventListener('pointermove',e=>{tx=e.clientX;ty=e.clientY;if(!run){run=true;requestAnimationFrame(f)}},{passive:true})})();
+try{if(localStorage.lite==='1')html.setAttribute('data-lite','')}catch{}
+A('.hero > *, .card',{opacity:[0,1],transform:['translateY(24px)','translateY(0px)']},{delay:stagger(.08),duration:.6});stats();
+document.addEventListener('pointerdown',e=>{const b=e.target.closest('.btn,.presets button,.ico');if(!b||b.disabled||lite())return;const r=b.getBoundingClientRect(),s=Math.max(r.width,r.height)*2,p=document.createElement('span');p.className='rip';p.style.cssText=`width:${s}px;height:${s}px;left:${e.clientX-r.left-s/2}px;top:${e.clientY-r.top-s/2}px`;b.append(p);setTimeout(()=>p.remove(),700)});
+
+/* ---------- ASCII circular audio spectrum (Web Audio + canvas) ---------- */
+const spec=(()=>{
+const NB=48,CHARS='#%*+:.O',COL=['#ef4136','#f25a38','#f5762f','#f79a26','#f7c01d','#ffe08a','#ffffff','#ef413680'];
+const cv=document.createElement('canvas');cv.id='spec';cv.hidden=true;cv.setAttribute('aria-hidden','true');const g=cv.getContext('2d');
+const bars=new Float32Array(NB),edges=new Int32Array(NB+1);
+let ac,an,node,el,bins,W=0,H=0,dpr=1,cw=6,ch=10,n=0,cx,cy,cr,ca,bk,chi,mx=0,my=0,raf=0,last=0,audio=false,playing=false,bass=0,busy=0;
+const host=()=>{const c=plyr.elements&&plyr.elements.container;if(c&&cv.parentNode!==c)c.append(cv)};
+function size(){const r=cv.getBoundingClientRect();W=Math.round(r.width);H=Math.round(r.height);if(!W||!H)return;const L=lite(),m=Math.min(W,H);
+dpr=L?1:Math.min(devicePixelRatio||1,2);cw=L?8:6;ch=L?13:10;cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0);g.font=ch+'px ui-monospace,Menlo,Consolas,monospace';g.textAlign='center';g.textBaseline='middle';
+const cols=Math.floor(W/cw),rows=Math.floor(H/ch),ox=(W-cols*cw)/2,oy=(H-rows*ch)/2,lim=m*.52,min=m*.26*.3;mx=W/2;my=H*.46;
+cx=new Float32Array(cols*rows);cy=new Float32Array(cols*rows);cr=new Float32Array(cols*rows);ca=new Float32Array(cols*rows);bk=new Int8Array(cols*rows);chi=new Uint8Array(cols*rows);n=0;
+for(let r2=0;r2<rows;r2++)for(let c2=0;c2<cols;c2++){const px=ox+(c2+.5)*cw,py=oy+(r2+.5)*ch,dx=px-mx,dy=py-my,d=Math.hypot(dx,dy);if(d>lim||d<min)continue;cx[n]=px;cy[n]=py;cr[n]=d;ca[n]=Math.abs(Math.atan2(dx,dy))/Math.PI;n++}}
+function bandEdges(){const lo=2,hi=Math.min(an.frequencyBinCount-1,700),k=Math.pow(hi/lo,1/NB);edges[0]=lo;for(let i=0;i<NB;i++)edges[i+1]=Math.max(edges[i]+1,Math.round(lo*Math.pow(k,i+1)))}
+async function ensure(){if(!audio||!plyr.media)return false;if(el===plyr.media&&node)return true;if(busy)return false;busy=1;
+try{const AC=window.AudioContext||window.webkitAudioContext;ac=ac||new AC();if(ac.state!=='running')await ac.resume();if(ac.state!=='running')return false;
+if(!an){an=ac.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=.55;bins=new Uint8Array(an.frequencyBinCount);an.connect(ac.destination);bandEdges()}
+try{node&&node.disconnect()}catch{}const m=plyr.media;node=ac.createMediaElementSource(m);node.connect(an);el=m;log('spectrum: analyser connected','ok');return true}
+catch(e){log('spectrum: '+errMsg(e),'warn');return false}finally{busy=0}}
+function frame(t){raf=0;if(cv.hidden)return;if(lite()&&t-last<32){raf=requestAnimationFrame(frame);return}
+const dt=Math.min(.1,Math.max(.001,(t-last)/1000));last=t;
+const live=playing&&an&&node&&el===plyr.media;if(live)an.getByteFrequencyData(bins);
+const ak=1-Math.exp(-dt*28),rk=1-Math.exp(-dt*7);let mxv=0,b=0;
+for(let i=0;i<NB;i++){let v=0;if(live){for(let k=edges[i],e=edges[i+1];k<e;k++)if(bins[k]>v)v=bins[k];v=Math.min(1,Math.pow(v/255,1.3)*(.85+.9*i/NB))}
+bars[i]+=(v-bars[i])*(v>bars[i]?ak:rk);if(bars[i]>mxv)mxv=bars[i];if(i<6)b+=bars[i]}
+bass=b/6;
+const m=Math.min(W,H),R=m*.26*(1+bass*.07),maxL=m*.2,R2=R*.52*(1+bass*.18),hch=ch*.48;
+for(let i=0;i<n;i++){const r=cr[i],d=r-R,ad=d<0?-d:d;let q=-1,s=0;
+if(ad<=hch){q=6;s=6}
+else{const f=ca[i]*(NB-1),i0=f|0,i1=i0<NB-1?i0+1:i0,w=f-i0,L=(bars[i0]*(1-w)+bars[i1]*w)*maxL;
+if(d>0){if(d<=L){const u=d/L;s=Math.min(5,(u*6)|0);q=s}}
+else if(-d<=L*.35){q=7;s=4}
+else if(Math.abs(r-R2)<=ch*.4){q=7;s=5}}
+bk[i]=q;chi[i]=s}
+g.clearRect(0,0,W,H);
+for(let q=0;q<8;q++){g.fillStyle=q===6?`rgba(255,255,255,${(.65+bass*.35).toFixed(2)})`:COL[q];for(let i=0;i<n;i++)if(bk[i]===q)g.fillText(CHARS[chi[i]],cx[i],cy[i])}
+if(playing||mxv>.004)raf=requestAnimationFrame(frame)}
+const kick=()=>{if(!raf&&!cv.hidden){last=performance.now();raf=requestAnimationFrame(frame)}};
+new ResizeObserver(()=>{if(!cv.hidden){size();kick()}}).observe(cv);
+return{cv,
+mode(on){audio=on;host();cv.hidden=!on;if(on){size();kick()}else{if(raf)cancelAnimationFrame(raf);raf=0;bars.fill(0);playing=false}},
+meta(){const m=plyr.media;if(file&&m&&!audio&&m.videoWidth===0&&m.duration>0)this.mode(true)},
+play(p){playing=p;if(!audio)return;if(p){ensure().then(kick);kick()}else kick()},
+refresh(){if(!cv.hidden){size();kick()}}}})();
+plyr.on('loadedmetadata',()=>spec.meta());plyr.on('play',()=>spec.play(true));plyr.on('playing',()=>spec.play(true));plyr.on('pause',()=>spec.play(false));plyr.on('ended',()=>spec.play(false));
+
+/* ---------- Lite mode (disable UI effects) ---------- */
+function setLite(on,save){on?html.setAttribute('data-lite',''):html.removeAttribute('data-lite');$('#fxT').checked=on;if(save){try{localStorage.lite=on?'1':'0'}catch{}toast(on?'Lite mode on — effects disabled':'Effects enabled')}spec.refresh()}
+$('#fxT').onchange=e=>setLite(e.target.checked,true);
+try{if(localStorage.lite==='1')setLite(true)}catch{}
+
+/* ---------- Mouse glow: follows the pointer with zero delay, compositor-only (transform) ---------- */
+(()=>{const g=$('#glow'),set=(x,y)=>g.style.transform=`translate3d(${x}px,${y}px,0)`;set(innerWidth/2,innerHeight/3);
+addEventListener('pointermove',e=>set(e.clientX,e.clientY),{passive:true})})();
