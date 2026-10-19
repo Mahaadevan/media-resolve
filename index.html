@@ -1,0 +1,38 @@
+
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Media Resolve – Convert any media for DaVinci Resolve (Linux Free)</title>
+<meta name="description" content="Convert any video/audio to DaVinci Resolve Linux-free friendly formats (DNxHR, ProRes, WAV) in your browser.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
+<link rel="stylesheet" href="css/style.css"></head><body>
+<header class="nav"><a class="logo" href="#"><i></i>Media Resolve</a>
+<nav><a href="#features">Features</a><a href="#how">How it works</a><a href="#credits">Credits</a></nav>
+<div class="tools"><label class="sw" data-tip="Developer menu: command, logs, custom args"><input id="devT" type="checkbox"><span></span>Dev</label>
+<button id="themeT" class="ico" data-tip="Toggle dark / light" aria-label="Toggle theme">◐</button></div></header>
+<main>
+<section class="hero"><h1>Any media. <b>Resolve-ready.</b></h1>
+<p>DaVinci Resolve Free on Linux can't import many codecs (H.264/H.265/AAC…). Drop anything here — conversion runs 100% in your browser.</p>
+<div id="drop" class="drop" tabindex="0"><input id="file" type="file" accept="video/*,audio/*,.mkv,.mts,.m2ts,.flv,.wmv,.avi,.webm" hidden>
+<strong>Drag &amp; drop</strong> or click to choose a file<small id="fname">No file selected</small></div></section>
+<section class="grid">
+<div class="card"><h2>Workflow preset <span class="tip" data-tip="Presets choose codec, pixel format and audio that Resolve Free on Linux reads reliably.">?</span></h2>
+<div id="presets" class="presets"></div><p id="pdesc" class="muted"></p>
+<div class="row"><label>Rotate <span class="tip" data-tip="Fix sideways phone footage.">?</span><select id="rot"><option value="">None</option><option value="transpose=1">90° CW</option><option value="transpose=2">90° CCW</option><option value="transpose=1,transpose=1">180°</option></select></label>
+<label>Container <span class="tip" data-tip="Resolve reads MOV and WAV best.">?</span><input id="ext" readonly></label></div>
+<div class="row"><button id="go" class="btn" disabled>Convert</button><button id="frame" class="btn ghost" disabled data-tip="Save the current player frame as full-res PNG">Extract frame</button></div>
+<div class="bar" hidden><div id="pb"></div><span id="pt">0%</span></div><div id="out"></div></div>
+<div class="card"><h2>Player <span class="tip" data-tip="Previews the source in your browser (Plyr API). ProRes/DNxHR outputs may not preview.">?</span></h2><video id="player" playsinline controls></video>
+<p class="muted" id="info">Verbose info appears after loading a file.</p></div></section>
+<section id="dev" class="card dev" hidden><h2>Dev menu</h2><label>FFmpeg command (editable extra args)<input id="extra" placeholder="-crf 18 -threads 1"></label>
+<code id="cmd">ffmpeg …</code><pre id="log"></pre><small class="muted">Wasm cannot use GPU encoders. For GPU (NVENC/VAAPI) use the CLI command above locally.</small></section>
+<section id="features"><h2>Features</h2><div class="feat" id="featList"></div></section>
+<section id="how"><h2>How it works</h2><ol class="steps"><li><b>Drop</b> any media file.</li><li><b>Pick</b> a Resolve workflow preset.</li><li><b>Convert</b> locally with ffmpeg.wasm — no upload.</li><li><b>Import</b> the MOV/WAV into Resolve.</li></ol></section>
+</main>
+<footer id="credits"><p>Media Resolve · MIT · Not affiliated with Blackmagic Design.</p>
+<p>Credits: <a href="https://github.com/ffmpegwasm/ffmpeg.wasm">ffmpeg.wasm</a> · <a href="https://github.com/FFmpeg/FFmpeg">FFmpeg</a> · <a href="https://github.com/motiondivision/motion">Motion</a> · <a href="https://github.com/sampotts/plyr">Plyr</a> · UI inspo <a href="https://motion.dev">motion.dev</a>, <a href="https://figma.com">Figma</a>, <a href="https://moviplayer.com">moviplayer.com</a></p></footer>
+<div id="toasts"></div>
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
+<script src="js/app.js"></script></body></html>
