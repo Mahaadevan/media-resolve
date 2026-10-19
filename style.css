@@ -79,7 +79,7 @@ section{margin:56px 0}.feat{display:grid;grid-template-columns:repeat(auto-fit,m
 .plyr video{border-radius:0}.plyr__video-wrapper{border-radius:12px}.plyr__poster{border-radius:12px}
 .plyr:fullscreen,.plyr:-webkit-full-screen,.plyr--fullscreen-fallback{border-radius:0}
 .plyr:fullscreen .plyr__video-wrapper,.plyr--fullscreen-fallback .plyr__video-wrapper,.plyr:fullscreen .plyr__poster{border-radius:0}
-/* ASCII audio spectrum */
+/* Audio spectrum canvas */
 #spec{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;background:radial-gradient(circle at 50% 46%,#2a070b 0,#0a0709 55%,#050506 100%)}
 /* Lite mode: no blur, glow, animation or hover effects */
 [data-lite] *,[data-lite] *:before,[data-lite] *:after{transition:none!important}
@@ -95,14 +95,14 @@ section{margin:56px 0}.feat{display:grid;grid-template-columns:repeat(auto-fit,m
 @keyframes tin{from{opacity:0;filter:blur(14px);transform:translateX(28px)}}
 @keyframes tout{to{opacity:0;filter:blur(14px);transform:translateX(28px)}}
 /* Subtle glitch when Lite mode is toggled */
-@keyframes gl{0%{transform:none;filter:none}
-10%{transform:translate(-3px,1px);filter:drop-shadow(2px 0 #ff2a3d) drop-shadow(-2px 0 #28d7ff)}
-22%{transform:translate(2px,-1px) skewX(-.5deg);filter:drop-shadow(-2px 0 #ff2a3d) drop-shadow(2px 0 #28d7ff)}
-34%{transform:translate(-1px,0);filter:none}
-48%{transform:translate(3px,1px) skewX(.5deg);filter:drop-shadow(2px 0 #ff2a3d) drop-shadow(-2px 0 #28d7ff)}
-62%{transform:translate(-2px,-1px);filter:drop-shadow(-1px 0 #ff2a3d) drop-shadow(1px 0 #28d7ff)}
-78%{transform:translate(1px,0);filter:none}
-100%{transform:none;filter:none}}
+@keyframes gl{0%{transform:none}
+10%{transform:translate(-3px,1px)}
+22%{transform:translate(2px,-1px) skewX(-.5deg)}
+34%{transform:translate(-1px,0)}
+48%{transform:translate(3px,1px) skewX(.5deg)}
+62%{transform:translate(-2px,-1px)}
+78%{transform:translate(1px,0)}
+100%{transform:none}}
 html.glitch .nav,html.glitch main,html.glitch footer{animation:gl .42s steps(1) both}
 @media(prefers-reduced-motion:reduce){html.glitch .nav,html.glitch main,html.glitch footer{animation:none}}
 /* Themed dropdown menus (replace the native select popup on desktop) */
