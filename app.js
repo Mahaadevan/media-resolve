@@ -24,15 +24,15 @@ fb:P('Facebook','16:9 1920×1080, 30 fps.',{r:'1920:1080',f:'30'}),
 wav:P('Audio · WAV 24-bit','48 kHz PCM — safest audio for Resolve Free on Linux.',{v:'none',a:'pcm24',c:'wav',sr:'48000'}),
 aiff:P('Audio · AIFF','48 kHz PCM, big-endian.',{v:'none',a:'pcm24',c:'aiff',sr:'48000'}),
 flac:P('Audio · FLAC','Lossless, smaller than WAV.',{v:'none',a:'pcm24',c:'flac',sr:'48000'})};
-const FEATS=['Any input format|Everything ffmpeg can read','Platform presets|YouTube, Reels, TikTok, X, Facebook…','Private|Files never leave your browser','Format menus|Codec, audio, container, size, fps','Dev menu|Command, logs, stats, file analysis','Audio spectrum|ASCII ring that reacts to your music','Lite mode|One switch turns off blur, glow and animations','Glass UI|Dark / light, Resolve gradient'];
+const FEATS=['Any input format|Everything ffmpeg can read','Platform presets|YouTube, Reels, TikTok, X, Facebook…','Private|Files never leave your browser','Format menus|Codec, audio, container, size, fps','Dev menu|Command, logs, stats, file analysis','Audio spectrum|Circular NCS-style visualizer in the accent colours','Lite mode|One switch turns off blur, glow and animations','Glass UI|Dark / light, Resolve gradient'];
 const fill=(id,o)=>$(id).innerHTML=Object.entries(o).map(([k,v])=>`<option value="${k}">${Array.isArray(v)?v[0]:v}</option>`).join('');
 fill('#vc',VC);fill('#ac',AC);fill('#ct',CT);fill('#res',RES);fill('#fps',FPS);fill('#fit',FIT);fill('#sr',SR);
 $('#featList').innerHTML=FEATS.map(f=>{const[a,b]=f.split('|');return`<div class="glass"><b>${a}</b><br><span class="muted">${b}</span></div>`}).join('');
-let items=[],sel=-1,ff,file,loaded=false,busy=false,url,lines=[],t0=0,inSize=0,outSize=0,elapsed=0,cap=null;const plyr=new Plyr('#player');
+let hz=0,items=[],sel=-1,ff,file,loaded=false,busy=false,url,lines=[],t0=0,inSize=0,outSize=0,elapsed=0,cap=null;const plyr=new Plyr('#player');
 const errMsg=e=>e instanceof Error?e.message:typeof e==='string'?e:(e&&e.message)||(()=>{try{return JSON.stringify(e)}catch{return''}})()||'Unknown error';
 function toast(m,e){const t=document.createElement('div');t.className='toast'+(e?' err':'');t.textContent=m;$('#toasts').append(t);setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),lite()?0:420)},4500)}
 function log(s,c){const d=document.createElement('div');c=c||(/error|invalid|fail|no such|unknown/i.test(s)?'err':/warn/i.test(s)?'warn':'');d.className=c;const l=`[${new Date().toLocaleTimeString()}] ${s}`;d.textContent=l;lines.push(l);const L=$('#log');L.append(d);while(L.childElementCount>2000)L.firstChild.remove();L.scrollTop=L.scrollHeight}
-function stats(){const mb=n=>n?(n/1048576).toFixed(2)+' MB':'–';$('#stats').innerHTML=[['Engine',loaded?'ready':'not loaded'],['Isolated',self.crossOriginIsolated?'yes':'no (single thread)'],['Input',mb(inSize)],['Output',mb(outSize)],['Ratio',inSize&&outSize?(outSize/inSize).toFixed(2)+'×':'–'],['Elapsed',elapsed?(elapsed/1000).toFixed(1)+' s':'–']].map(([a,b])=>`<div>${a}<b>${b}</b></div>`).join('')}
+function stats(){const mb=n=>n?(n/1048576).toFixed(2)+' MB':'–';$('#stats').innerHTML=[['Engine',loaded?'ready':'not loaded'],['Isolated',self.crossOriginIsolated?'yes':'no (single thread)'],['Input',mb(inSize)],['Output',mb(outSize)],['Ratio',inSize&&outSize?(outSize/inSize).toFixed(2)+'×':'–'],['Elapsed',elapsed?(elapsed/1000).toFixed(1)+' s':'–'],['Display refresh',hz?hz+' Hz (animations run at this rate)':'measuring…']].map(([a,b])=>`<div>${a}<b>${b}</b></div>`).join('')}
 function mk(){ff=new FFmpeg();ff.on('log',({message})=>{log(message);if(cap)cap.push(message)});ff.on('progress',({progress})=>{const p=Math.min(100,Math.max(0,Math.round((progress||0)*100)));$('#pb').style.width=p+'%';$('#pt').textContent=p+'%'})}mk();
 async function reset(){try{ff.terminate()}catch{}loaded=false;mk();stats()}
 async function load(){if(loaded)return;toast('Loading engine (~30 MB, cached after)…');log('Loading ffmpeg core 0.12.6','ok');const b=CDN+'@ffmpeg/core@0.12.6/dist/umd/';
@@ -108,46 +108,53 @@ try{if(localStorage.lite==='1')html.setAttribute('data-lite','')}catch{}
 A('.drop, .card',{opacity:[0,1],transform:['translateY(24px)','translateY(0px)']},{delay:stagger(.08),duration:.6});stats();
 document.addEventListener('pointerdown',e=>{const b=e.target.closest('.btn,.presets button,.ico');if(!b||b.disabled||lite())return;const r=b.getBoundingClientRect(),s=Math.max(r.width,r.height)*2,p=document.createElement('span');p.className='rip';p.style.cssText=`width:${s}px;height:${s}px;left:${e.clientX-r.left-s/2}px;top:${e.clientY-r.top-s/2}px`;b.append(p);setTimeout(()=>p.remove(),700)});
 
-/* ---------- ASCII circular audio spectrum (Web Audio + canvas) ---------- */
+/* ---------- NCS-style circular audio spectrum (Web Audio + canvas, site accent colours) ---------- */
 const spec=(()=>{
-const NB=48,CHARS='#%*+:.O',COL=['#ef4136','#f25a38','#f5762f','#f79a26','#f7c01d','#ffe08a','#ffffff','#ef413680'];
+const NB=48;
 const cv=document.createElement('canvas');cv.id='spec';cv.hidden=true;cv.setAttribute('aria-hidden','true');const g=cv.getContext('2d');
-const bars=new Float32Array(NB),edges=new Int32Array(NB+1);
-let ac,an,node,el,bins,W=0,H=0,dpr=1,cw=6,ch=10,n=0,cx,cy,cr,ca,bk,chi,mx=0,my=0,raf=0,last=0,audio=false,playing=false,bass=0,busy=0;
+const bars=new Float32Array(NB),edges=new Int32Array(NB+1),logo=new Image();logo.src='logo.png';
+let ac,an,node,el,bins,W=0,H=0,dpr=1,NBAR=96,pk=new Float32Array(NBAR),raf=0,last=0,audio=false,playing=false,bass=0,busy=0;
 const host=()=>{const c=plyr.elements&&plyr.elements.container;if(c&&cv.parentNode!==c)c.append(cv)};
-function size(){const r=cv.getBoundingClientRect();W=Math.round(r.width);H=Math.round(r.height);if(!W||!H)return;const L=lite(),m=Math.min(W,H);
-dpr=L?1:Math.min(devicePixelRatio||1,2);cw=L?8:6;ch=L?13:10;cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0);g.font=ch+'px ui-monospace,Menlo,Consolas,monospace';g.textAlign='center';g.textBaseline='middle';
-const cols=Math.floor(W/cw),rows=Math.floor(H/ch),ox=(W-cols*cw)/2,oy=(H-rows*ch)/2,lim=m*.52,min=m*.26*.3;mx=W/2;my=H*.46;
-cx=new Float32Array(cols*rows);cy=new Float32Array(cols*rows);cr=new Float32Array(cols*rows);ca=new Float32Array(cols*rows);bk=new Int8Array(cols*rows);chi=new Uint8Array(cols*rows);n=0;
-for(let r2=0;r2<rows;r2++)for(let c2=0;c2<cols;c2++){const px=ox+(c2+.5)*cw,py=oy+(r2+.5)*ch,dx=px-mx,dy=py-my,d=Math.hypot(dx,dy);if(d>lim||d<min)continue;cx[n]=px;cy[n]=py;cr[n]=d;ca[n]=Math.abs(Math.atan2(dx,dy))/Math.PI;n++}}
+function size(){const r=cv.getBoundingClientRect();W=Math.round(r.width);H=Math.round(r.height);if(!W||!H)return;const L=lite();
+dpr=L?1:Math.min(devicePixelRatio||1,2);NBAR=L?64:96;if(pk.length!==NBAR)pk=new Float32Array(NBAR);cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0)}
 function bandEdges(){const lo=2,hi=Math.min(an.frequencyBinCount-1,700),k=Math.pow(hi/lo,1/NB);edges[0]=lo;for(let i=0;i<NB;i++)edges[i+1]=Math.max(edges[i]+1,Math.round(lo*Math.pow(k,i+1)))}
 async function ensure(){if(!audio||!plyr.media)return false;if(el===plyr.media&&node)return true;if(busy)return false;busy=1;
 try{const AC=window.AudioContext||window.webkitAudioContext;ac=ac||new AC();if(ac.state!=='running')await ac.resume();if(ac.state!=='running')return false;
 if(!an){an=ac.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=.55;bins=new Uint8Array(an.frequencyBinCount);an.connect(ac.destination);bandEdges()}
 try{node&&node.disconnect()}catch{}const m=plyr.media;node=ac.createMediaElementSource(m);node.connect(an);el=m;log('spectrum: analyser connected','ok');return true}
 catch(e){log('spectrum: '+errMsg(e),'warn');return false}finally{busy=0}}
-function frame(t){raf=0;if(cv.hidden)return;if(lite()&&t-last<32){raf=requestAnimationFrame(frame);return}
+function frame(t){raf=0;if(cv.hidden)return;
 const dt=Math.min(.1,Math.max(.001,(t-last)/1000));last=t;
 const live=playing&&an&&node&&el===plyr.media;if(live)an.getByteFrequencyData(bins);
 const ak=1-Math.exp(-dt*28),rk=1-Math.exp(-dt*7);let mxv=0,b=0;
 for(let i=0;i<NB;i++){let v=0;if(live){for(let k=edges[i],e=edges[i+1];k<e;k++)if(bins[k]>v)v=bins[k];v=Math.min(1,Math.pow(v/255,1.3)*(.85+.9*i/NB))}
 bars[i]+=(v-bars[i])*(v>bars[i]?ak:rk);if(bars[i]>mxv)mxv=bars[i];if(i<6)b+=bars[i]}
 bass=b/6;
-const m=Math.min(W,H),R=m*.26*(1+bass*.07),maxL=m*.2,R2=R*.52*(1+bass*.18),hch=ch*.48;
-for(let i=0;i<n;i++){const r=cr[i],d=r-R,ad=d<0?-d:d;let q=-1,s=0;
-if(ad<=hch){q=6;s=6}
-else{const f=ca[i]*(NB-1),i0=f|0,i1=i0<NB-1?i0+1:i0,w=f-i0,L=(bars[i0]*(1-w)+bars[i1]*w)*maxL;
-if(d>0){if(d<=L){const u=d/L;s=Math.min(5,(u*6)|0);q=s}}
-else if(-d<=L*.35){q=7;s=4}
-else if(Math.abs(r-R2)<=ch*.4){q=7;s=5}}
-bk[i]=q;chi[i]=s}
+const L=lite(),m=Math.min(W,H),X=W/2,Y=H*.46,R=m*.2*(1+bass*.06),maxL=m*.2,TAU=Math.PI*2,lw=Math.max(2,TAU*R/NBAR*.42);
 g.clearRect(0,0,W,H);
-for(let q=0;q<8;q++){g.fillStyle=q===6?`rgba(255,255,255,${(.65+bass*.35).toFixed(2)})`:COL[q];for(let i=0;i<n;i++)if(bk[i]===q)g.fillText(CHARS[chi[i]],cx[i],cy[i])}
+/* soft accent halo that breathes with the bass */
+let gr=g.createRadialGradient(X,Y,R*.5,X,Y,R+maxL*1.5);gr.addColorStop(0,`rgba(239,65,54,${(.16+bass*.3).toFixed(3)})`);gr.addColorStop(1,'rgba(239,65,54,0)');g.fillStyle=gr;g.fillRect(0,0,W,H);
+/* radial bars, mirrored left/right, one path + one stroke */
+gr=g.createRadialGradient(X,Y,R,X,Y,R+maxL);gr.addColorStop(0,'#b3202a');gr.addColorStop(.35,'#ef4136');gr.addColorStop(.75,'#ff8a6b');gr.addColorStop(1,'#f7c01d');
+g.lineCap='round';g.lineWidth=lw;g.strokeStyle=gr;if(!L){g.shadowColor='rgba(239,65,54,.85)';g.shadowBlur=14}
+g.beginPath();const pks=[];
+for(let i=0;i<NBAR;i++){const a=(i+.5)/NBAR*TAU,u=a<Math.PI?a:TAU-a,f=u/Math.PI*(NB-1),i0=f|0,i1=i0<NB-1?i0+1:i0,w=f-i0,len=3+(bars[i0]*(1-w)+bars[i1]*w)*maxL,dx=Math.sin(a),dy=Math.cos(a);
+pk[i]=Math.max(len,pk[i]-dt*maxL*.55);const r0=R+lw*.9;g.moveTo(X+dx*r0,Y+dy*r0);g.lineTo(X+dx*(r0+len),Y+dy*(r0+len));pks.push(X+dx*(r0+pk[i]+lw*1.6),Y+dy*(r0+pk[i]+lw*1.6))}
+g.stroke();g.shadowBlur=0;
+/* falling peak dots */
+g.fillStyle='rgba(255,236,200,.85)';g.beginPath();const pr=Math.max(1,lw*.34);for(let i=0;i<pks.length;i+=2){g.moveTo(pks[i]+pr,pks[i+1]);g.arc(pks[i],pks[i+1],pr,0,TAU)}g.fill();
+/* ring + centre disc with the site logo */
+g.lineWidth=2;g.strokeStyle=`rgba(255,255,255,${(.55+bass*.4).toFixed(2)})`;g.beginPath();g.arc(X,Y,R,0,TAU);g.stroke();
+const r1=R*.88*(1+bass*.05);g.save();g.beginPath();g.arc(X,Y,r1,0,TAU);g.clip();
+const dg=g.createRadialGradient(X,Y,0,X,Y,r1);dg.addColorStop(0,'#2a070b');dg.addColorStop(1,'#120508');g.fillStyle=dg;g.fillRect(X-r1,Y-r1,r1*2,r1*2);
+if(logo.complete&&logo.naturalWidth){const s=r1*1.1;g.globalAlpha=.95;g.drawImage(logo,X-s/2,Y-s/2,s,s);g.globalAlpha=1}
+g.restore();g.lineWidth=2;g.strokeStyle='#ef4136';g.beginPath();g.arc(X,Y,r1,0,TAU);g.stroke();
 if(playing||mxv>.004)raf=requestAnimationFrame(frame)}
 const kick=()=>{if(!raf&&!cv.hidden){last=performance.now();raf=requestAnimationFrame(frame)}};
 new ResizeObserver(()=>{if(!cv.hidden){size();kick()}}).observe(cv);
+logo.onload=()=>kick();
 return{cv,
-mode(on){audio=on;host();cv.hidden=!on;if(on){size();kick()}else{if(raf)cancelAnimationFrame(raf);raf=0;bars.fill(0);playing=false}},
+mode(on){audio=on;host();cv.hidden=!on;if(on){size();kick()}else{if(raf)cancelAnimationFrame(raf);raf=0;bars.fill(0);pk.fill(0);playing=false}},
 meta(){const m=plyr.media;if(file&&m&&!audio&&m.videoWidth===0&&m.duration>0)this.mode(true)},
 play(p){playing=p;if(!audio)return;if(p){ensure().then(kick);kick()}else kick()},
 refresh(){if(!cv.hidden){size();kick()}}}})();
@@ -206,3 +213,6 @@ if(s<end+.15)requestAnimationFrame(tick);else{gone=true;c.style.transition='opac
 setTimeout(()=>R.forEach(o=>{o.u.classList.remove('gw');o.u.style.animationDelay='';if(o.u.tagName==='SPAN'&&o.u.parentNode&&o.u.firstChild)o.u.replaceWith(o.u.firstChild)}),(end+.9)*1000)}
 catch(e){done();log('intro: '+errMsg(e),'warn')}}
 genText();
+
+/* ---------- measure the real display refresh rate (all animations are rAF/compositor driven, so they follow it) ---------- */
+(()=>{const d=[];let p=0;const f=t=>{if(p)d.push(t-p);p=t;if(d.length<45)requestAnimationFrame(f);else{d.sort((a,b)=>a-b);const m=d[d.length>>1];hz=Math.round(1000/m);log(`display refresh ≈ ${hz} Hz`,'ok');stats()}};requestAnimationFrame(f)})();
