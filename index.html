@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" sizes="256x256" href="favicon.png?v=2"><link rel="shortcut icon" type="image/png" href="favicon.png?v=2"><link rel="apple-touch-icon" href="logo.png">
 <link rel="stylesheet" href="style.css"></head><body><div id="glow" aria-hidden="true"></div>
 <header class="nav"><a class="logo" href="#"><img src="logo.png" alt="" width="28" height="28">Media Resolve</a>
-<nav><a href="#features">Features</a><a href="#examples">Examples</a><a href="#how">How it works</a><a href="#credits">Credits</a></nav>
+<nav><a href="#features">Features</a><a href="#how">How it works</a><a href="#examples">Examples</a><a href="#credits">Credits</a></nav>
 <div class="tools"><label class="sw" data-tip="Developer menu: command, logs, stats, file analysis"><input id="devT" type="checkbox"><span class="k"></span>Dev</label>
 <label class="sw" data-tip="Lite mode: turns off blur, glow, animations and hover effects for better performance. The spectrum stays but is drawn lighter."><input id="fxT" type="checkbox"><span class="k"></span>Lite</label>
 <button id="themeT" class="ico" data-tip="Toggle dark / light" aria-label="Toggle theme">🔆</button></div></header>
@@ -45,13 +45,13 @@
 <p class="muted" id="info">File info appears after loading a file.</p>
 <div class="qwrap"><div class="qhead"><h3>Queue <span class="tip" tabindex="0" data-tip="Click a file to preview it. Each file has its own rotation. Convert all runs every file with the current menu settings.">?</span></h3>
 <div class="qbar"><button id="add" class="btn ghost">＋ Add files</button><button id="clr" class="btn ghost">Clear</button><button id="all" class="btn" disabled>Convert all</button></div></div><div id="queue" class="queue"></div></div></div></section>
-<section id="examples"><h2>Examples</h2><p class="muted">No file handy? Load a sample into the queue and try a preset.</p><div class="feat" id="exList"></div></section>
 <section id="features"><h2>Features</h2><div class="feat" id="featList"></div></section>
 <section id="how"><h2>How it works</h2><ol class="steps"><li><b>Drop</b> any media file.</li><li><b>Pick</b> a Resolve workflow preset or tune the menus.</li><li><b>Convert</b> locally with ffmpeg.wasm — no upload.</li><li><b>Import</b> the MOV/MXF/WAV into Resolve.</li></ol></section>
+<section id="examples"><h2>Examples</h2><p class="muted">No file handy? Load a sample into the queue and try a preset.</p><div class="feat" id="exList"></div></section>
 </main>
 <footer id="credits"><p>Media Resolve · MIT · Not affiliated with Blackmagic Design.</p>
 <p>Credits: <a href="https://github.com/ffmpegwasm/ffmpeg.wasm">ffmpeg.wasm</a> · <a href="https://github.com/FFmpeg/FFmpeg">FFmpeg</a> · <a href="https://github.com/motiondivision/motion">Motion</a> · <a href="https://github.com/sampotts/plyr">Plyr</a> · UI inspo <a href="https://motion.dev">motion.dev</a>, <a href="https://figma.com">Figma</a>, <a href="https://moviplayer.com">moviplayer.com</a></p>
-<p>Example media: <a href="https://peach.blender.org/">Big Buck Bunny</a> © Blender Foundation (<a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>) · “Sable” by Massobeats, music from <a href="https://freetouse.com/music">Free To Use</a></p>
+<p>Example music: “Sable” by Massobeats, from <a href="https://freetouse.com/music">Free To Use</a></p>
 <p>Spectrum reference: <a href="https://mahaadevan.github.io/moviplayer-skinned/">Cone (moviplayer-skinned)</a> by mahaadevan, a skin over <a href="https://moviplayer.com/">MoviPlayer</a> by <a href="https://github.com/MrUjjwalG">Ujjwal Gupta</a> (<a href="https://github.com/MrUjjwalG/movi-player">movi-player</a>, Apache-2.0)</p></footer>
 <div id="toasts"></div>
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
