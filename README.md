@@ -7,7 +7,7 @@ Browser-based converter that turns any media into formats **DaVinci Resolve Free
 | `index.html` | Page markup |
 | `style.css` | Glass UI, Resolve-gradient theme (dark/light) |
 | `app.js` | Conversion, presets, queue, Dev menu, tooltips |
-| `examples/` | Sample media for the Examples section (`big-buck-bunny.mp4`, `massobeats-sable-freetouse.com.mp3`) |
+| `examples/` | Sample media for the Examples section (`massobeats-sable-freetouse.com.mp3`) |
 | `logo.png`, `favicon.png` | Logo and tab icon |
 | `.github/workflows/pages.yml` | Pages deploy (Source: GitHub Actions) |
 
@@ -21,7 +21,7 @@ Browser-based converter that turns any media into formats **DaVinci Resolve Free
 | Format menus | Video codec (DNxHR LB→444, ProRes Proxy→4444, MJPEG), audio (PCM 16/24), container (MOV/MKV/MXF), canvas (16:9, 9:16, 4:5, 1:1), fit/fill, fps, sample rate, rotate |
 | Frame extraction | PNG/JPG at a chosen time or player position (instant canvas capture, ffmpeg fallback) |
 | Dev menu | Sits above the presets and player. Live/copyable CLI command, extra args, log level, colour-coded log (copy/download/clear), stats, `ffmpeg -i` file analysis, player event log |
-| Examples | **Examples** tab in the nav: one click loads Big Buck Bunny (video) or Massobeats – Sable (audio) into the queue to try the presets |
+| Examples | **Examples** tab in the nav: one click loads Massobeats – Sable (audio) into the queue to try the presets; a video example is in development |
 | Audio spectrum | While audio plays, the player shows a simple bar spectrum in the site's red-to-gold gradient (Web Audio `AnalyserNode` + canvas, frame-rate independent) |
 | Lite mode | Switch beside **Dev**: turns off blur, glow, animations and hover effects; the spectrum is drawn lighter and capped at 30 fps. Remembered between visits |
 | UX | Drag & drop, progress bar, toasts, error handling, viewport-safe tooltips, blur UI, animations on the compositor (run at your display's refresh rate), softly trailing mouse glow, blur/fade toasts, themed dropdown menus (desktop), text-generation style intro, text glitch (colour split + jitter) when Lite mode is toggled |
@@ -55,7 +55,6 @@ Audio-spectrum reference: [Cone (moviplayer-skinned)](https://mahaadevan.github.
 ### Example media
 | Media | Credit / licence |
 |---|---|
-| *Big Buck Bunny* (`examples/big-buck-bunny.mp4`) | © Copyright 2008, Blender Foundation · [www.bigbuckbunny.org](https://peach.blender.org/) · licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
 | *Sable* by Massobeats (`examples/massobeats-sable-freetouse.com.mp3`) | Music: Massobeats – Sable · provided by [Free To Use](https://freetouse.com/music) · see their licence for usage terms |
 
 Not affiliated with Blackmagic Design. MIT.
