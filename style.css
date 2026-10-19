@@ -118,4 +118,5 @@ html.gen .nav>*,html.gen main,html.gen footer{visibility:hidden}
 .gw0{opacity:0}
 .gw{animation:gen .38s ease-out both}
 @keyframes gen{from{opacity:0;filter:blur(6px)}to{opacity:1;filter:blur(0)}}
-#caret{position:fixed;left:0;top:0;width:7px;border-radius:2px;background:var(--acc);box-shadow:0 0 12px var(--acc);z-index:99998;pointer-events:none;opacity:0}
+#caret{position:fixed;left:0;top:0;font:700 16px/1 ui-monospace,Menlo,Consolas,monospace;white-space:pre;color:var(--acc);text-shadow:0 0 10px var(--acc);z-index:99998;pointer-events:none;opacity:0}
+#caret i{font-style:normal;animation:blink .5s steps(1) infinite}@keyframes blink{50%{opacity:0}}
