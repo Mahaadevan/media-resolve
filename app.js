@@ -190,19 +190,19 @@ addEventListener('scroll',e=>{if(!menu.contains(e.target))close()},true);addEven
 /* ---------- Text-generation intro: words stream in top to bottom with a caret ---------- */
 function genText(){const done=()=>html.classList.remove('gen');
 if(lite()||matchMedia('(prefers-reduced-motion:reduce)').matches)return done();
-try{const vh=innerHeight*1.25,tw=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;const p=n.parentElement;
+try{const tw=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;const p=n.parentElement;
 if(!p||!p.closest('.nav,main,footer')||p.closest('select,option,code,script,style,.log,#toasts,#tt,[hidden],h1 b'))return NodeFilter.FILTER_REJECT;return NodeFilter.FILTER_ACCEPT}}),nodes=[];let nd;while(nd=tw.nextNode())nodes.push(nd);
 const units=[],rg=document.createRange();
-for(const n of nodes){rg.selectNodeContents(n);const rc=rg.getBoundingClientRect();if(!rc.width||rc.top>vh)continue;
+for(const n of nodes){rg.selectNodeContents(n);const rc=rg.getBoundingClientRect();if(!rc.width)continue;
 const one=/flex|grid/.test(getComputedStyle(n.parentElement).display),parts=one?[n.nodeValue]:n.nodeValue.split(/(\s+)/),fr=document.createDocumentFragment();
 for(const s of parts){if(!s)continue;if(!one&&/^\s+$/.test(s)){fr.append(s);continue}const sp=document.createElement('span');sp.className='gw0';sp.textContent=s;fr.append(sp);units.push(sp)}n.replaceWith(fr)}
 document.querySelectorAll('h1 b').forEach(b=>{b.classList.add('gw0');units.push(b)});
-const R=units.map(u=>{const r=u.getBoundingClientRect();return{u,x:r.right,y:r.top,h:r.height,k:Math.round((r.top+r.height/2)/14)}}).filter(o=>o.h>0).sort((a,b)=>a.k-b.k||a.x-b.x);
+const R=units.map(u=>{const r=u.getBoundingClientRect();return{u,x:r.right+scrollX,y:r.top+scrollY,h:r.height,k:Math.round((r.top+scrollY+r.height/2)/14)}}).filter(o=>o.h>0).sort((a,b)=>a.k-b.k||a.x-b.x);
 if(!R.length)return done();
-const step=Math.min(.022,2.2/R.length),d0=.1;R.forEach((o,i)=>{o.u.style.animationDelay=(d0+i*step).toFixed(3)+'s';o.u.classList.replace('gw0','gw')});done();
-const c=document.createElement('i');c.id='caret';document.body.append(c);const t0=performance.now(),end=d0+R.length*step;
-const tick=t=>{const s=(t-t0)/1000,k=Math.floor((s-d0)/step);if(k>=0){const o=R[Math.min(R.length-1,k)];c.style.transform=`translate(${o.x+3}px,${o.y}px)`;c.style.height=o.h+'px';c.style.opacity=1}
-if(s<end+.35)requestAnimationFrame(tick);else c.remove()};requestAnimationFrame(tick);
+const step=Math.min(.022,3/R.length),d0=.1;R.forEach((o,i)=>{o.u.style.animationDelay=(d0+i*step).toFixed(3)+'s';o.u.classList.replace('gw0','gw')});done();
+const c=document.createElement('span');c.id='caret';c.innerHTML='&gt;<i>_</i>';document.body.append(c);const t0=performance.now(),end=d0+R.length*step;let gone=false;
+const tick=t=>{const s=(t-t0)/1000,k=Math.floor((s-d0)/step);if(k>=0&&!gone){const o=R[Math.min(R.length-1,k)],fs=Math.max(12,Math.min(30,o.h*.9));c.style.fontSize=fs+'px';c.style.transform=`translate(${o.x-scrollX+4}px,${o.y-scrollY+(o.h-fs)/2}px)`;c.style.opacity=1}
+if(s<end+.15)requestAnimationFrame(tick);else{gone=true;c.style.transition='opacity .4s,filter .4s';c.style.opacity=0;c.style.filter='blur(6px)';setTimeout(()=>c.remove(),450)}};requestAnimationFrame(tick);
 setTimeout(()=>R.forEach(o=>{o.u.classList.remove('gw');o.u.style.animationDelay='';if(o.u.tagName==='SPAN'&&o.u.parentNode&&o.u.firstChild)o.u.replaceWith(o.u.firstChild)}),(end+.9)*1000)}
 catch(e){done();log('intro: '+errMsg(e),'warn')}}
 genText();
