@@ -46,10 +46,17 @@ function toast(m,e){const t=document.createElement('div');t.className='toast'+(e
 function log(s,c){const d=document.createElement('div');c=c||(/error|invalid|fail|no such|unknown/i.test(s)?'err':/warn/i.test(s)?'warn':'');d.className=c;const l=`[${new Date().toLocaleTimeString()}] ${s}`;d.textContent=l;lines.push(l);const L=$('#log');L.append(d);while(L.childElementCount>50000)L.firstChild.remove();L.scrollTop=L.scrollHeight}
 function stats(){const mb=n=>n?(n/1048576).toFixed(2)+' MB':'–';$('#stats').innerHTML=[['Engine',loaded?'ready':'not loaded'],['Isolated',self.crossOriginIsolated?'yes':'no (single thread)'],['Input',mb(inSize)],['Output',mb(outSize)],['Ratio',inSize&&outSize?(outSize/inSize).toFixed(2)+'×':'–'],['Encoder used',used||'–'],['Elapsed',elapsed?(elapsed/1000).toFixed(1)+' s':'–'],['Display refresh',hz?hz+' Hz (animations run at this rate)':'measuring…']].map(([a,b])=>`<div>${a}<b>${b}</b></div>`).join('')}
 function mk(){ff=new FFmpeg();ff.on('log',({message})=>{log(message);if(cap)cap.push(message)});ff.on('progress',({progress})=>setP(pBase+Math.min(1,Math.max(0,progress||0))*pSpan))}mk();
-async function reset(){try{ff.terminate()}catch{}loaded=false;mk();stats()}
+async function reset(){try{ff.terminate()}catch{}loaded=false;mounted=false;mk();stats()}
 async function load(){if(loaded)return;toast('Loading engine (~30 MB, cached after)…');log('Loading ffmpeg core 0.12.6','ok');const b=CDN+'@ffmpeg/core@0.12.6/dist/',cls=await toBlobURL(CDN+'@ffmpeg/ffmpeg@0.12.10/dist/umd/814.ffmpeg.js','text/javascript'),wasmURL=await toBlobURL(b+'umd/ffmpeg-core.wasm','application/wasm');let err;
 for(const k of ['esm','umd']){try{const coreURL=await toBlobURL(b+k+'/ffmpeg-core.js','text/javascript');await ff.load({coreURL,wasmURL,classWorkerURL:cls});loaded=true;log('Engine ready ('+k+' core)','ok');stats();return}catch(e){err=e;log(k+' core failed: '+errMsg(e),'warn');try{ff.terminate()}catch{}mk()}}throw err}
-const IN=()=>{const x=(file.name.split('.').pop()||'').toLowerCase();return'in.'+(/^[a-z0-9]{1,5}$/.test(x)?x:'bin')};
+const IN=()=>'/in/'+file.name;
+let mounted=false;
+/* Mount the File via WORKERFS: ffmpeg reads it straight from disk, no copy into the wasm heap (this is what caused 'Array buffer allocation failed') */
+async function putIn(){mounted=false;try{await ff.createDir('/in')}catch{}
+try{await ff.mount('WORKERFS',{files:[file]},'/in');mounted=true;log('Input mounted read-only (no memory copy)','ok');return}catch(e){log('WORKERFS mount failed ('+errMsg(e)+') – copying into memory','warn')}
+if(file.size>1.5*1073741824)throw new Error('File is too large to copy into wasm memory and this build cannot mount it – use the copied CLI command locally');
+await ff.writeFile(IN(),await fetchFile(file))}
+async function dropIn(){if(!file)return;if(mounted){try{await ff.unmount('/in')}catch{}mounted=false}else{try{await ff.deleteFile(IN())}catch{}}try{await ff.deleteDir('/in')}catch{}}
 const AUD={wav:{pcm16:'pcm_s16le',pcm24:'pcm_s24le'},aiff:{pcm16:'pcm_s16be',pcm24:'pcm_s24be'}};
 function setCT(noV){const s=$('#ct'),k=noV?'a':'v';if(s.dataset.k===k)return;const cur=s.value;fill('#ct',noV?CTA:CT);s.dataset.k=k;if([...s.options].some(o=>o.value===cur))s.value=cur}
 function build(cli){const v=$('#vc').value,w=WEB[v],a0=$('#ac').value,a=w?(a0==='none'?'none':'lossy'):(a0==='lossy'?'pcm16':a0),r=$('#res').value,f=$('#fps').value,rot=rotv(),fit=$('#fit').value,sr=$('#sr').value,noV=v==='none',ct=$('#ct').value;
@@ -96,30 +103,36 @@ const c=await ff.exec(a);if(c!==0)throw new Error(`chunk ${k+1}/${n} failed (cod
 await hold();pBase=0;pSpan=1;setP(.99);await ff.writeFile('list.txt',parts.map(p=>`file '${p}'`).join('\n'));
 const c=await ff.exec(['-hide_banner','-f','concat','-safe','0','-i','list.txt','-c','copy',out]);if(c!==0)throw new Error('joining chunks failed — see Dev ▸ log')}
 finally{for(const p of parts)try{await ff.deleteFile(p)}catch{}try{await ff.deleteFile('list.txt')}catch{}}}
-async function webRun(ext){const v=$('#vc').value,w=WEB[v],f=$('#fps').value,rot=ROTD[rotv()]||0;
+async function webRun(ext,name){const v=$('#vc').value,w=WEB[v],f=$('#fps').value,rot=ROTD[rotv()]||0;
 if(!self.VideoEncoder)throw new Error('WebCodecs VideoEncoder not available in this browser');
+let fh=null,ws=null;if(file.size>268435456&&self.showSaveFilePicker){try{fh=await showSaveFilePicker({suggestedName:name})}catch(e){if(e&&e.name==='AbortError')throw new Error('Save cancelled');fh=null}}
 const[rw,rh]=$('#res').value?$('#res').value.split(':').map(Number):[0,0],pm=plyr.media,pw=rw||(pm&&pm.videoWidth)||1920,ph=rh||(pm&&pm.videoHeight)||1080;
 const sup=await VideoEncoder.isConfigSupported({codec:w.wc,width:pw&~1,height:ph&~1,bitrate:8e6,framerate:30}).catch(()=>({}));
 if(!sup.supported)throw new Error(w.c.toUpperCase()+' '+pw+'×'+ph+' encoding not supported by this browser / GPU');
 toast('Loading WebCodecs muxer…');MB=MB||await import(CDN+'mediabunny@1.42.0/+esm');const M=MB;
 let src;if(M.StreamSource)src=new M.StreamSource({getSize:()=>file.size,read:async(s,e)=>{await hold();return new Uint8Array(await file.slice(s,e).arrayBuffer())},maxCacheSize:4194304});else{src=new M.BlobSource(file);$('#pause').hidden=true;log('Pause unavailable on this WebCodecs build','warn')}
 const input=new M.Input({source:src,formats:M.ALL_FORMATS}),Fmt={mp4:M.Mp4OutputFormat,mov:M.MovOutputFormat,mkv:M.MkvOutputFormat,webm:M.WebMOutputFormat}[ext];if(!Fmt)throw new Error('Container '+ext+' not supported by WebCodecs path');
-const output=new M.Output({format:new Fmt(),target:new M.BufferTarget()});
+if(fh&&M.StreamTarget){ws=await fh.createWritable();log('Streaming output straight to disk','ok')}else if(file.size>268435456)log('Large file: output will be buffered in memory (this browser cannot save to disk directly)','warn');
+const output=new M.Output({format:new Fmt(),target:ws?new M.StreamTarget(ws):new M.BufferTarget()});
 const cv=await M.Conversion.init({input,output,video:{codec:w.c,bitrate:M.QUALITY_HIGH,...(rw?{width:rw,height:rh,fit:$('#fit').value==='crop'?'cover':'contain'}:{}),...(f?{frameRate:+f}:{}),...(rot?{rotate:rot,allowRotationMetadata:false}:{})},audio:$('#ac').value==='none'?{discard:true}:{codec:v==='vp9'?'opus':'aac'}});
 if(!cv.isValid)throw new Error('Nothing convertible ('+cv.discardedTracks.map(t=>t.reason).join(', ')+')');
-cv.onProgress=p=>setP(p);log(`WebCodecs: ${w.c} ${pw}×${ph} → ${ext}`,'ok');await cv.execute();const buf=output.target.buffer;if(!buf)throw new Error('WebCodecs produced no data');return new Uint8Array(buf)}
+cv.onProgress=p=>setP(p);log(`WebCodecs: ${w.c} ${pw}×${ph} → ${ext}`,'ok');
+try{await cv.execute()}catch(e){if(ws)try{await ws.abort()}catch{}throw e}
+if(ws)return{streamed:true,size:(await fh.getFile()).size};
+const buf=output.target.buffer;if(!buf)throw new Error('WebCodecs produced no data');return new Uint8Array(buf)}
 async function run(args,out,mime,name,chunk,web){if(!file)return toast('Choose a file first',1);if(busy)return;setBusy(true);$('.prog').hidden=false;pBase=0;pSpan=1;setP(0);paused=false;gate=gp=null;pms=0;lbl('⏸ Pause');$('#pause').hidden=!(chunk||web);t0=performance.now();
 log(web?'WebCodecs encode → '+name:'ffmpeg '+args.join(' '),'ok');
 try{let data=null;
 if(web){try{data=await web();used='WebCodecs (GPU if available)'}catch(e){if($('#eng').value==='wc')throw e;log('WebCodecs path failed ('+errMsg(e)+') → FFmpeg.wasm fallback','warn');toast('WebCodecs unavailable here — using FFmpeg.wasm',1);setP(0);$('#pause').hidden=!chunk;data=null}}
-if(!data){used='FFmpeg.wasm';await load();await ff.writeFile(IN(),await fetchFile(file));await ffRun(args,out,chunk);try{data=await ff.readFile(out)}catch{throw new Error('No output file was produced — see Dev ▸ log')}}
+if(!data){used='FFmpeg.wasm';await load();await putIn();await ffRun(args,out,chunk);try{data=await ff.readFile(out)}catch{throw new Error('No output file was produced — see Dev ▸ log')}}
+if(data&&data.streamed){outSize=data.size;elapsed=performance.now()-t0-pms;setP(1);log(`Done in ${(elapsed/1000).toFixed(1)} s via ${used} → saved to disk as ${name} (${outSize} bytes)`,'ok');toast('Saved to disk ✔');return true}
 if(!data||!data.length)throw new Error('Output is empty — encoder may be missing in this wasm build');
 const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([data],{type:mime}));l.download=name;l.className='btn';l.textContent='Download '+name;$('#out').append(l);A(l,{opacity:[0,1],transform:['translateY(12px)','translateY(0px)']});
 outSize=data.length;elapsed=performance.now()-t0-pms;setP(1);log(`Done in ${(elapsed/1000).toFixed(1)} s via ${used} → ${name} (${outSize} bytes)`,'ok');toast('Done ✔');return true}
-catch(e){const m=errMsg(e);log('ERROR: '+m,'err');toast('Failed: '+m+(/memory|abort|out of bounds/i.test(m)?' (file may be too large for wasm)':''),1);await reset();return false}
-finally{paused=false;if(gate)gate();gate=gp=null;$('#pause').hidden=true;try{await ff.deleteFile(IN())}catch{}try{await ff.deleteFile(out)}catch{}setBusy(false);stats()}}
+catch(e){const m=errMsg(e);log('ERROR: '+m,'err');toast('Failed: '+m+(/memory|abort|out of bounds|allocation|buffer/i.test(m)?' (output too large for browser memory – try a lighter preset, or use the CLI command)':''),1);await reset();return false}
+finally{paused=false;if(gate)gate();gate=gp=null;$('#pause').hidden=true;await dropIn();try{await ff.deleteFile(out)}catch{}setBusy(false);stats()}}
 $('#go').onclick=async()=>{if(!file)return;const it=items[sel],b=build(false),base=file.name.replace(/\.[^.]+$/,'');if($('#vc').value==='none'&&$('#ac').value==='none')return toast('Audio-only needs an audio codec',1);
-it.st='run';render();const web=WEB[$('#vc').value]&&$('#eng').value!=='ffm'?()=>webRun(b.ext):null;const ok=await run(b.args,b.out,MIME[b.ext]||'video/quicktime',`${base}_resolve.${b.ext}`,true,web);it.st=ok?'done':'err';render()};
+it.st='run';render();const web=WEB[$('#vc').value]&&$('#eng').value!=='ffm'?()=>webRun(b.ext,`${base}_resolve.${b.ext}`):null;const ok=await run(b.args,b.out,MIME[b.ext]||'video/quicktime',`${base}_resolve.${b.ext}`,true,web);it.st=ok?'done':'err';render()};
 const RTX={'transpose=1':90,'transpose=2':-90,'transpose=1,transpose=1':180};
 async function grab(t,img,rot){const v=plyr.media;if(!v||!v.videoWidth)throw new Error('browser cannot decode this video');
 if(Math.abs(v.currentTime-t)>.01)await new Promise(ok=>{const s=()=>{v.removeEventListener('seeked',s);ok()};v.addEventListener('seeked',s);v.currentTime=Math.min(t,v.duration||t);setTimeout(ok,4000)});
@@ -130,9 +143,9 @@ const name=`${file.name.replace(/\.[^.]+$/,'')}_${t.toFixed(2)}s.${img}`;
 try{const blob=await grab(t,img,rot),l=document.createElement('a');l.href=URL.createObjectURL(blob);l.download=name;l.className='btn';l.textContent='Download '+name;$('#out').append(l);A(l,{opacity:[0,1],transform:['translateY(12px)','translateY(0px)']});toast('Frame extracted ✔');log(`Frame saved ${name} (${blob.size} bytes)`,'ok');return}
 catch(e){log('Canvas capture unavailable ('+errMsg(e)+') — using ffmpeg','warn')}
 const out='frame.'+img;run(['-hide_banner','-loglevel',$('#ll').value,'-i',IN(),'-ss',t.toFixed(3),...(rot?['-vf',rot]:[]),'-frames:v','1','-update','1',...(img==='jpg'?['-pix_fmt','yuvj420p','-q:v','2']:['-pix_fmt','rgb24']),out],out,img==='png'?'image/png':'image/jpeg',name)};
-$('#analyze').onclick=async()=>{if(busy||!file)return;setBusy(true);cap=[];try{await load();await ff.writeFile(IN(),await fetchFile(file));await ff.exec(['-hide_banner','-i',IN()]);
+$('#analyze').onclick=async()=>{if(busy||!file)return;setBusy(true);cap=[];try{await load();await putIn();await ff.exec(['-hide_banner','-i',IN()]);
 const s=cap.filter(m=>/Duration|Stream #|Input #|major_brand|encoder/i.test(m)).map(m=>m.trim());$('#info').textContent=file.name+'\n'+(s.join('\n')||'No stream info found');toast('Analysis complete')}
-catch(e){const m=errMsg(e);log('ERROR: '+m,'err');toast('Analyze failed: '+m,1);await reset()}finally{cap=null;try{await ff.deleteFile(IN())}catch{}setBusy(false)}};
+catch(e){const m=errMsg(e);log('ERROR: '+m,'err');toast('Analyze failed: '+m,1);await reset()}finally{cap=null;await dropIn();setBusy(false)}};
 $('#devT').onchange=e=>{$('#dev').hidden=!e.target.checked;stats()};
 const flash=async(t)=>{try{await navigator.clipboard.writeText(t);toast('Copied')}catch{toast('Copy blocked by browser',1)}};
 $('#copyCmd').onclick=()=>flash('ffmpeg '+build(true).args.join(' '));$('#copyLog').onclick=()=>flash(lines.join('\n'));$('#clrLog').onclick=()=>{lines=[];$('#log').replaceChildren()};
