@@ -145,3 +145,6 @@ html{scroll-padding-top:72px}
 .plyr.aud .plyr__control--overlaid{display:none!important}
 .nav nav a,.logo{cursor:pointer}
 section[id]{scroll-margin-top:72px}
+
+.presets button{font-size:.78em}
+html:not([data-lite]){scroll-behavior:smooth}
