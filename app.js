@@ -104,3 +104,7 @@ document.addEventListener('mouseover',e=>{const el=e.target.closest('[data-tip]'
 $('#themeT').onclick=()=>{const h=document.documentElement;h.dataset.theme=h.dataset.theme==='dark'?'light':'dark';try{localStorage.theme=h.dataset.theme}catch{}};
 try{document.documentElement.dataset.theme=localStorage.theme||'dark'}catch{}
 animate('.hero > *, .card',{opacity:[0,1],y:[24,0]},{delay:stagger(.08),duration:.6});stats();
+document.addEventListener('pointerdown',e=>{const b=e.target.closest('.btn,.presets button,.ico');if(!b||b.disabled)return;const r=b.getBoundingClientRect(),s=Math.max(r.width,r.height)*2,p=document.createElement('span');p.className='rip';p.style.cssText=`width:${s}px;height:${s}px;left:${e.clientX-r.left-s/2}px;top:${e.clientY-r.top-s/2}px`;b.append(p);setTimeout(()=>p.remove(),700)});
+(()=>{let x=innerWidth/2,y=innerHeight/3,tx=x,ty=y,run=false;const s=document.documentElement.style;
+const f=()=>{x+=(tx-x)*.12;y+=(ty-y)*.12;s.setProperty('--mx',x+'px');s.setProperty('--my',y+'px');run=Math.abs(tx-x)>.2||Math.abs(ty-y)>.2;if(run)requestAnimationFrame(f)};
+addEventListener('pointermove',e=>{tx=e.clientX;ty=e.clientY;if(!run){run=true;requestAnimationFrame(f)}},{passive:true})})();
