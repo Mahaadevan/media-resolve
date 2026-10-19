@@ -4,9 +4,10 @@ const html=document.documentElement,lite=()=>html.hasAttribute('data-lite'),A=(t
 const prof=(p,px)=>['-c:v','prores_ks','-profile:v',p,'-pix_fmt',px];
 const dnx=(p,px)=>['-c:v','dnxhd','-profile:v',p,'-pix_fmt',px];
 const VC={dnx_lb:['DNxHR LB (proxy)',dnx('dnxhr_lb','yuv422p')],dnx_sq:['DNxHR SQ',dnx('dnxhr_sq','yuv422p')],dnx_hq:['DNxHR HQ (8-bit)',dnx('dnxhr_hq','yuv422p')],dnx_hqx:['DNxHR HQX (10-bit)',dnx('dnxhr_hqx','yuv422p10le')],dnx_444:['DNxHR 444 (10-bit)',dnx('dnxhr_444','yuv444p10le')],
-pr_proxy:['ProRes Proxy',prof('0','yuv422p10le')],pr_lt:['ProRes LT',prof('1','yuv422p10le')],pr_422:['ProRes 422',prof('2','yuv422p10le')],pr_hq:['ProRes 422 HQ',prof('3','yuv422p10le')],pr_4444:['ProRes 4444 (alpha)',prof('4','yuva444p10le')],mjpeg:['MJPEG (high quality)',['-c:v','mjpeg','-q:v','2','-pix_fmt','yuvj422p']],none:['No video (audio only)',[]]};
-const AC={pcm16:['PCM 16-bit',['-c:a','pcm_s16le']],pcm24:['PCM 24-bit',['-c:a','pcm_s24le']],none:['No audio',['-an']]};
-const CT={mov:'MOV',mkv:'MKV',mxf:'MXF'},RES={'':'Source','3840:2160':'4K UHD 16:9','2560:1440':'1440p 16:9','1920:1080':'1080p 16:9','1280:720':'720p 16:9','1080:1920':'1080×1920 9:16','1080:1350':'1080×1350 4:5','1080:1080':'1080×1080 1:1','720:1280':'720×1280 9:16'},CTA={wav:'WAV',aiff:'AIFF',flac:'FLAC'},FIT={pad:'Fit (letterbox)',crop:'Fill (crop)'},SR={'':'Source','44100':'44.1 kHz','48000':'48 kHz','96000':'96 kHz'},FPS={'':'Source','24':'24','25':'25','30':'30','50':'50','60':'60'};
+pr_proxy:['ProRes Proxy',prof('0','yuv422p10le')],pr_lt:['ProRes LT',prof('1','yuv422p10le')],pr_422:['ProRes 422',prof('2','yuv422p10le')],pr_hq:['ProRes 422 HQ',prof('3','yuv422p10le')],pr_4444:['ProRes 4444 (alpha)',prof('4','yuva444p10le')],mjpeg:['MJPEG (high quality)',['-c:v','mjpeg','-q:v','2','-pix_fmt','yuvj422p']],h264:['H.264 · fast (WebCodecs GPU)',[]],vp9:['VP9 · web (WebCodecs)',[]],none:['No video (audio only)',[]]};
+const AC={pcm16:['PCM 16-bit',['-c:a','pcm_s16le']],pcm24:['PCM 24-bit',['-c:a','pcm_s24le']],lossy:['AAC / Opus (for H.264 / VP9)',[]],none:['No audio',['-an']]};
+const CT={mov:'MOV',mkv:'MKV',mxf:'MXF',mp4:'MP4',webm:'WebM'},RES={'':'Source','3840:2160':'4K UHD 16:9','2560:1440':'1440p 16:9','1920:1080':'1080p 16:9','1280:720':'720p 16:9','1080:1920':'1080×1920 9:16','1080:1350':'1080×1350 4:5','1080:1080':'1080×1080 1:1','720:1280':'720×1280 9:16'},CTA={wav:'WAV',aiff:'AIFF',flac:'FLAC'},FIT={pad:'Fit (letterbox)',crop:'Fill (crop)'},SR={'':'Source','44100':'44.1 kHz','48000':'48 kHz','96000':'96 kHz'},FPS={'':'Source','24':'24','25':'25','30':'30','50':'50','60':'60'};
+const WEB={h264:{c:'avc',wc:'avc1.640033',ct:['mp4','mov','mkv'],fa:['-c:a','aac','-b:a','192k'],fv:['-c:v','libx264','-preset','veryfast','-crf','18','-pix_fmt','yuv420p']},vp9:{c:'vp9',wc:'vp09.00.40.08',ct:['webm','mkv'],fa:['-c:a','libopus','-b:a','160k'],fv:['-c:v','libvpx-vp9','-crf','30','-b:v','0','-deadline','realtime','-cpu-used','6','-row-mt','1','-pix_fmt','yuv420p']}},ROTD={'transpose=1':90,'transpose=2':270,'transpose=1,transpose=1':180},MIME={wav:'audio/wav',aiff:'audio/aiff',flac:'audio/flac',mp4:'video/mp4',webm:'video/webm',mkv:'video/x-matroska',mov:'video/quicktime',mxf:'application/mxf'};
 const ROT={'':'None','transpose=1':'90° CW','transpose=2':'90° CCW','transpose=1,transpose=1':'180°'};
 const P=(n,d,o)=>({n,d,v:'dnx_hq',a:'pcm16',c:'mov',r:'',f:'',fit:'pad',sr:'',...o});
 const PRESETS={edit:P('Edit · DNxHR HQ','Intra-frame, fast scrubbing. Best general codec for Resolve Free on Linux.',{}),
@@ -23,6 +24,8 @@ x:P('X / Twitter','16:9 1280×720, 30 fps.',{r:'1280:720',f:'30'}),
 fb:P('Facebook','16:9 1920×1080, 30 fps.',{r:'1920:1080',f:'30'}),
 wav:P('Audio · WAV 24-bit','48 kHz PCM — safest audio for Resolve Free on Linux.',{v:'none',a:'pcm24',c:'wav',sr:'48000'}),
 aiff:P('Audio · AIFF','48 kHz PCM, big-endian.',{v:'none',a:'pcm24',c:'aiff',sr:'48000'}),
+web:P('Web · H.264 (GPU)','Fast H.264 + AAC MP4 via WebCodecs, FFmpeg.wasm fallback. Plays everywhere, but Resolve Free on Linux cannot import it.',{v:'h264',a:'lossy',c:'mp4'}),
+webvp9:P('Web · VP9','VP9 + Opus WebM via WebCodecs, FFmpeg.wasm fallback.',{v:'vp9',a:'lossy',c:'webm'}),
 flac:P('Audio · FLAC','Lossless, smaller than WAV.',{v:'none',a:'pcm24',c:'flac',sr:'48000'})};
 const FEATS=['Any input format|Everything ffmpeg can read','Platform presets|YouTube, Reels, TikTok, X, Facebook…','Private|Files never leave your browser','Format menus|Codec, audio, container, size, fps','Dev menu|Command, logs, stats, file analysis','Audio spectrum|Simple bar visualizer in the accent colours','Lite mode|One switch turns off blur, glow and animations','Glass UI|Dark / light, Resolve gradient'];
 const EXS=[{t:'Video example',d:'In development',off:1},
@@ -36,25 +39,27 @@ catch(err){log('example: '+errMsg(err),'warn');window.open(x.p,'_blank','noopene
 finally{b.disabled=false;b.textContent=t}};
 $('#featList').innerHTML=FEATS.map(f=>{const[a,b]=f.split('|');return`<div class="glass"><b>${a}</b><br><span class="muted">${b}</span></div>`}).join('');
 let hz=0,items=[],sel=-1,ff,file,loaded=false,busy=false,url,lines=[],t0=0,inSize=0,outSize=0,elapsed=0,cap=null;const plyr=new Plyr('#player');
+let pBase=0,pSpan=1,paused=false,gate=null,gp=null,pms=0,ps=0,used='',MB=null;
+function setP(f){const p=Math.min(100,Math.max(0,Math.round(f*100)));$('#pb').style.width=p+'%';$('#pt').textContent=p+'%'}
 const errMsg=e=>e instanceof Error?e.message:typeof e==='string'?e:(e&&e.message)||(()=>{try{return JSON.stringify(e)}catch{return''}})()||'Unknown error';
 function toast(m,e){const t=document.createElement('div');t.className='toast'+(e?' err':'');t.textContent=m;$('#toasts').append(t);setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),lite()?0:420)},4500)}
 function log(s,c){const d=document.createElement('div');c=c||(/error|invalid|fail|no such|unknown/i.test(s)?'err':/warn/i.test(s)?'warn':'');d.className=c;const l=`[${new Date().toLocaleTimeString()}] ${s}`;d.textContent=l;lines.push(l);const L=$('#log');L.append(d);while(L.childElementCount>50000)L.firstChild.remove();L.scrollTop=L.scrollHeight}
-function stats(){const mb=n=>n?(n/1048576).toFixed(2)+' MB':'–';$('#stats').innerHTML=[['Engine',loaded?'ready':'not loaded'],['Isolated',self.crossOriginIsolated?'yes':'no (single thread)'],['Input',mb(inSize)],['Output',mb(outSize)],['Ratio',inSize&&outSize?(outSize/inSize).toFixed(2)+'×':'–'],['Elapsed',elapsed?(elapsed/1000).toFixed(1)+' s':'–'],['Display refresh',hz?hz+' Hz (animations run at this rate)':'measuring…']].map(([a,b])=>`<div>${a}<b>${b}</b></div>`).join('')}
-function mk(){ff=new FFmpeg();ff.on('log',({message})=>{log(message);if(cap)cap.push(message)});ff.on('progress',({progress})=>{const p=Math.min(100,Math.max(0,Math.round((progress||0)*100)));$('#pb').style.width=p+'%';$('#pt').textContent=p+'%'})}mk();
+function stats(){const mb=n=>n?(n/1048576).toFixed(2)+' MB':'–';$('#stats').innerHTML=[['Engine',loaded?'ready':'not loaded'],['Isolated',self.crossOriginIsolated?'yes':'no (single thread)'],['Input',mb(inSize)],['Output',mb(outSize)],['Ratio',inSize&&outSize?(outSize/inSize).toFixed(2)+'×':'–'],['Encoder used',used||'–'],['Elapsed',elapsed?(elapsed/1000).toFixed(1)+' s':'–'],['Display refresh',hz?hz+' Hz (animations run at this rate)':'measuring…']].map(([a,b])=>`<div>${a}<b>${b}</b></div>`).join('')}
+function mk(){ff=new FFmpeg();ff.on('log',({message})=>{log(message);if(cap)cap.push(message)});ff.on('progress',({progress})=>setP(pBase+Math.min(1,Math.max(0,progress||0))*pSpan))}mk();
 async function reset(){try{ff.terminate()}catch{}loaded=false;mk();stats()}
 async function load(){if(loaded)return;toast('Loading engine (~30 MB, cached after)…');log('Loading ffmpeg core 0.12.6','ok');const b=CDN+'@ffmpeg/core@0.12.6/dist/',cls=await toBlobURL(CDN+'@ffmpeg/ffmpeg@0.12.10/dist/umd/814.ffmpeg.js','text/javascript'),wasmURL=await toBlobURL(b+'umd/ffmpeg-core.wasm','application/wasm');let err;
 for(const k of ['esm','umd']){try{const coreURL=await toBlobURL(b+k+'/ffmpeg-core.js','text/javascript');await ff.load({coreURL,wasmURL,classWorkerURL:cls});loaded=true;log('Engine ready ('+k+' core)','ok');stats();return}catch(e){err=e;log(k+' core failed: '+errMsg(e),'warn');try{ff.terminate()}catch{}mk()}}throw err}
 const IN=()=>{const x=(file.name.split('.').pop()||'').toLowerCase();return'in.'+(/^[a-z0-9]{1,5}$/.test(x)?x:'bin')};
 const AUD={wav:{pcm16:'pcm_s16le',pcm24:'pcm_s24le'},aiff:{pcm16:'pcm_s16be',pcm24:'pcm_s24be'}};
 function setCT(noV){const s=$('#ct'),k=noV?'a':'v';if(s.dataset.k===k)return;const cur=s.value;fill('#ct',noV?CTA:CT);s.dataset.k=k;if([...s.options].some(o=>o.value===cur))s.value=cur}
-function build(cli){const v=$('#vc').value,a=$('#ac').value,r=$('#res').value,f=$('#fps').value,rot=rotv(),fit=$('#fit').value,sr=$('#sr').value,noV=v==='none',ct=$('#ct').value;
-const ext=noV?(CTA[ct]?ct:'wav'):ct,ex=$('#extra').value.trim().split(/\s+/).filter(Boolean);
+function build(cli){const v=$('#vc').value,w=WEB[v],a0=$('#ac').value,a=w?(a0==='none'?'none':'lossy'):(a0==='lossy'?'pcm16':a0),r=$('#res').value,f=$('#fps').value,rot=rotv(),fit=$('#fit').value,sr=$('#sr').value,noV=v==='none',ct=$('#ct').value;
+const ext=noV?(CTA[ct]?ct:'wav'):(w&&!w.ct.includes(ct)?w.ct[0]:ct),ex=$('#extra').value.trim().split(/\s+/).filter(Boolean);
 let sc='';if(r){const[w,h]=r.split(':');sc=fit==='crop'?`scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},setsar=1`:`scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2,setsar=1`}
 const vf=[rot,sc,f&&`fps=${f}`].filter(Boolean).join(','),bd=a==='pcm24'?'pcm24':'pcm16';
-const aud=noV?(ext==='flac'?['-c:a','flac',...(bd==='pcm24'?['-sample_fmt','s32']:[])]:['-c:a',AUD[ext][bd]]):AC[a][1];
+const aud=w?(a==='none'?['-an']:w.fa):noV?(ext==='flac'?['-c:a','flac',...(bd==='pcm24'?['-sample_fmt','s32']:[])]:['-c:a',AUD[ext][bd]]):AC[a][1];
 const inp=cli&&file?`"${file.name}"`:file?IN():'input',out=cli&&file?`"${file.name.replace(/\.[^.]+$/,'')}_resolve.${ext}"`:'out.'+ext;
-return{ext,out:'out.'+ext,args:['-hide_banner','-loglevel',$('#ll').value,'-i',inp,...(noV?['-vn']:[...(vf?['-vf',cli?`"${vf}"`:vf]:[]),...VC[v][1]]),...aud,...(sr?['-ar',sr]:[]),...ex,...(cli?[out]:['out.'+ext])]}}
-function refresh(){setCT($('#vc').value==='none');$('#cmd').textContent='ffmpeg '+build(true).args.join(' ');$('#go').textContent='Convert → '+build(false).ext.toUpperCase()}
+return{ext,out:'out.'+ext,args:['-hide_banner','-loglevel',$('#ll').value,'-i',inp,...(noV?['-vn']:[...(vf?['-vf',cli?`"${vf}"`:vf]:[]),...(w?[...w.fv,...(/^(mp4|mov)$/.test(ext)?['-movflags','+faststart']:[])]:VC[v][1])]),...aud,...(sr?['-ar',sr]:[]),...ex,...(cli?[out]:['out.'+ext])]}}
+function refresh(){const vc=$('#vc').value,wv=WEB[vc];setCT(vc==='none');if(wv&&!wv.ct.includes($('#ct').value))$('#ct').value=wv.ct[0];else if(!wv&&vc!=='none'&&/^(mp4|webm)$/.test($('#ct').value))$('#ct').value='mov';$('#cmd').textContent='ffmpeg '+build(true).args.join(' ');$('#go').textContent='Convert → '+build(false).ext.toUpperCase()}
 $('#presets').innerHTML=Object.entries(PRESETS).map(([k,p])=>`<button data-k="${k}">${p.n}</button>`).join('');
 $('#presets').onclick=e=>{const k=e.target.dataset.k;if(!k)return;const p=PRESETS[k];document.querySelectorAll('#presets button').forEach(b=>b.classList.toggle('on',b===e.target));$('#pdesc').textContent=p.d;$('#vc').value=p.v;setCT(p.v==='none');$('#ac').value=p.a;$('#ct').value=p.c;$('#res').value=p.r;$('#fps').value=p.f;$('#fit').value=p.fit;$('#sr').value=p.sr;refresh()};
 $('#presets button').click();['vc','ac','ct','res','fps','fit','sr','extra','ll'].forEach(i=>$('#'+i).addEventListener('input',()=>{if(['vc','ac','ct','res','fps','fit','sr'].includes(i))document.querySelectorAll('#presets button').forEach(b=>b.classList.remove('on'));refresh()}));
@@ -79,16 +84,42 @@ const d=$('#drop');d.onclick=()=>$('#file').click();d.onkeydown=e=>{if(e.key==='
 ['loadedmetadata','play','pause','seeked','ended'].forEach(ev=>plyr.on(ev,()=>log(`player:${ev} t=${plyr.currentTime.toFixed(2)} dur=${(plyr.duration||0).toFixed(2)}`,'pl')));
 plyr.on('error',()=>{log('player: browser cannot decode this source (conversion still works)','warn');toast('Browser can’t preview this codec — conversion still works',1)});
 const btns=['#go','#frame','#analyze','#all'];const setBusy=b=>{busy=b;btns.forEach(s=>$(s).disabled=b||!file)};
-async function run(args,out,mime,name,after){if(!file)return toast('Choose a file first',1);if(busy)return;setBusy(true);$('.bar').hidden=false;$('#pb').style.width='0';$('#pt').textContent='0%';t0=performance.now();
-log('ffmpeg '+args.join(' '),'ok');
-try{await load();await ff.writeFile(IN(),await fetchFile(file));const code=await ff.exec(args);if(code!==0)throw new Error(`ffmpeg exited with code ${code} — see Dev ▸ log`);
-let data;try{data=await ff.readFile(out)}catch{throw new Error('No output file was produced — see Dev ▸ log')}if(!data||!data.length)throw new Error('Output is empty — encoder may be missing in this wasm build');
+const lbl=t=>{$('#pause').textContent=t};
+async function hold(){if(!paused)return;lbl('▶ Resume');gp=gp||new Promise(r=>gate=r);await gp}
+$('#pause').onclick=()=>{paused=!paused;if(paused){ps=performance.now();lbl('Pausing…');log('pause requested – stops at next safe point','warn')}else{pms+=performance.now()-ps;lbl('⏸ Pause');log('resumed','ok');if(gate){gate();gate=gp=null}}};
+async function ffRun(args,out,chunk){let D=0;
+if(chunk){cap=[];try{await ff.exec(['-hide_banner','-i',IN()])}catch{}const m=cap.join('\n').match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);cap=null;D=m?(+m[1])*3600+(+m[2])*60+ +m[3]:0}
+const L=30;if(!chunk||D<=L*1.5){if(chunk){$('#pause').hidden=true;log('Short clip: single pass (pause not needed)')}const c=await ff.exec(args);if(c!==0)throw new Error(`ffmpeg exited with code ${c} — see Dev ▸ log`);return}
+const n=Math.ceil(D/L),ext=out.split('.').pop(),parts=[];log(`Pausable encode: ${n} chunks of ${L}s, joined losslessly at the end`,'ok');
+try{for(let k=0;k<n;k++){await hold();pBase=k/n;pSpan=1/n;setP(pBase);const a=args.slice(),p=`p${k}.${ext}`;a.splice(a.indexOf('-i'),0,'-ss',String(k*L),'-t',String(L));a[a.length-1]=p;
+const c=await ff.exec(a);if(c!==0)throw new Error(`chunk ${k+1}/${n} failed (code ${c}) — see Dev ▸ log`);parts.push(p)}
+await hold();pBase=0;pSpan=1;setP(.99);await ff.writeFile('list.txt',parts.map(p=>`file '${p}'`).join('\n'));
+const c=await ff.exec(['-hide_banner','-f','concat','-safe','0','-i','list.txt','-c','copy',out]);if(c!==0)throw new Error('joining chunks failed — see Dev ▸ log')}
+finally{for(const p of parts)try{await ff.deleteFile(p)}catch{}try{await ff.deleteFile('list.txt')}catch{}}}
+async function webRun(ext){const v=$('#vc').value,w=WEB[v],f=$('#fps').value,rot=ROTD[rotv()]||0;
+if(!self.VideoEncoder)throw new Error('WebCodecs VideoEncoder not available in this browser');
+const[rw,rh]=$('#res').value?$('#res').value.split(':').map(Number):[0,0],pm=plyr.media,pw=rw||(pm&&pm.videoWidth)||1920,ph=rh||(pm&&pm.videoHeight)||1080;
+const sup=await VideoEncoder.isConfigSupported({codec:w.wc,width:pw&~1,height:ph&~1,bitrate:8e6,framerate:30}).catch(()=>({}));
+if(!sup.supported)throw new Error(w.c.toUpperCase()+' '+pw+'×'+ph+' encoding not supported by this browser / GPU');
+toast('Loading WebCodecs muxer…');MB=MB||await import(CDN+'mediabunny@1.42.0/+esm');const M=MB;
+let src;if(M.StreamSource)src=new M.StreamSource({getSize:()=>file.size,read:async(s,e)=>{await hold();return new Uint8Array(await file.slice(s,e).arrayBuffer())},maxCacheSize:4194304});else{src=new M.BlobSource(file);$('#pause').hidden=true;log('Pause unavailable on this WebCodecs build','warn')}
+const input=new M.Input({source:src,formats:M.ALL_FORMATS}),Fmt={mp4:M.Mp4OutputFormat,mov:M.MovOutputFormat,mkv:M.MkvOutputFormat,webm:M.WebMOutputFormat}[ext];if(!Fmt)throw new Error('Container '+ext+' not supported by WebCodecs path');
+const output=new M.Output({format:new Fmt(),target:new M.BufferTarget()});
+const cv=await M.Conversion.init({input,output,video:{codec:w.c,bitrate:M.QUALITY_HIGH,...(rw?{width:rw,height:rh,fit:$('#fit').value==='crop'?'cover':'contain'}:{}),...(f?{frameRate:+f}:{}),...(rot?{rotate:rot,allowRotationMetadata:false}:{})},audio:$('#ac').value==='none'?{discard:true}:{codec:v==='vp9'?'opus':'aac'}});
+if(!cv.isValid)throw new Error('Nothing convertible ('+cv.discardedTracks.map(t=>t.reason).join(', ')+')');
+cv.onProgress=p=>setP(p);log(`WebCodecs: ${w.c} ${pw}×${ph} → ${ext}`,'ok');await cv.execute();const buf=output.target.buffer;if(!buf)throw new Error('WebCodecs produced no data');return new Uint8Array(buf)}
+async function run(args,out,mime,name,chunk,web){if(!file)return toast('Choose a file first',1);if(busy)return;setBusy(true);$('.prog').hidden=false;pBase=0;pSpan=1;setP(0);paused=false;gate=gp=null;pms=0;lbl('⏸ Pause');$('#pause').hidden=!(chunk||web);t0=performance.now();
+log(web?'WebCodecs encode → '+name:'ffmpeg '+args.join(' '),'ok');
+try{let data=null;
+if(web){try{data=await web();used='WebCodecs (GPU if available)'}catch(e){if($('#eng').value==='wc')throw e;log('WebCodecs path failed ('+errMsg(e)+') → FFmpeg.wasm fallback','warn');toast('WebCodecs unavailable here — using FFmpeg.wasm',1);setP(0);$('#pause').hidden=!chunk;data=null}}
+if(!data){used='FFmpeg.wasm';await load();await ff.writeFile(IN(),await fetchFile(file));await ffRun(args,out,chunk);try{data=await ff.readFile(out)}catch{throw new Error('No output file was produced — see Dev ▸ log')}}
+if(!data||!data.length)throw new Error('Output is empty — encoder may be missing in this wasm build');
 const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([data],{type:mime}));l.download=name;l.className='btn';l.textContent='Download '+name;$('#out').append(l);A(l,{opacity:[0,1],transform:['translateY(12px)','translateY(0px)']});
-outSize=data.length;elapsed=performance.now()-t0;$('#pb').style.width='100%';$('#pt').textContent='100%';log(`Done in ${(elapsed/1000).toFixed(1)} s → ${name} (${outSize} bytes)`,'ok');toast('Done ✔');return true}
+outSize=data.length;elapsed=performance.now()-t0-pms;setP(1);log(`Done in ${(elapsed/1000).toFixed(1)} s via ${used} → ${name} (${outSize} bytes)`,'ok');toast('Done ✔');return true}
 catch(e){const m=errMsg(e);log('ERROR: '+m,'err');toast('Failed: '+m+(/memory|abort|out of bounds/i.test(m)?' (file may be too large for wasm)':''),1);await reset();return false}
-finally{try{await ff.deleteFile(IN())}catch{}try{await ff.deleteFile(out)}catch{}setBusy(false);stats()}}
+finally{paused=false;if(gate)gate();gate=gp=null;$('#pause').hidden=true;try{await ff.deleteFile(IN())}catch{}try{await ff.deleteFile(out)}catch{}setBusy(false);stats()}}
 $('#go').onclick=async()=>{if(!file)return;const it=items[sel],b=build(false),base=file.name.replace(/\.[^.]+$/,'');if($('#vc').value==='none'&&$('#ac').value==='none')return toast('Audio-only needs an audio codec',1);
-it.st='run';render();const ok=await run(b.args,b.out,({wav:'audio/wav',aiff:'audio/aiff',flac:'audio/flac'})[b.ext]||'video/quicktime',`${base}_resolve.${b.ext}`);it.st=ok?'done':'err';render()};
+it.st='run';render();const web=WEB[$('#vc').value]&&$('#eng').value!=='ffm'?()=>webRun(b.ext):null;const ok=await run(b.args,b.out,MIME[b.ext]||'video/quicktime',`${base}_resolve.${b.ext}`,true,web);it.st=ok?'done':'err';render()};
 const RTX={'transpose=1':90,'transpose=2':-90,'transpose=1,transpose=1':180};
 async function grab(t,img,rot){const v=plyr.media;if(!v||!v.videoWidth)throw new Error('browser cannot decode this video');
 if(Math.abs(v.currentTime-t)>.01)await new Promise(ok=>{const s=()=>{v.removeEventListener('seeked',s);ok()};v.addEventListener('seeked',s);v.currentTime=Math.min(t,v.duration||t);setTimeout(ok,4000)});
