@@ -149,7 +149,4 @@ section[id]{scroll-margin-top:72px}
 .presets button{font-size:.78em}
 html:not([data-lite]){scroll-behavior:smooth}
 html{scroll-behavior:auto}
-html.sc .glass,html.sc .nav,html.sc .toast{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-html.sc #glow,html.sc body:before{display:none!important}
-html.sc *{transition:none!important}
 a.ico{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;color:var(--t)}
