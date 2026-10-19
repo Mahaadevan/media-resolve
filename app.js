@@ -212,7 +212,7 @@ genText();
 /* ---------- measure the real display refresh rate (all animations are rAF/compositor driven, so they follow it) ---------- */
 (()=>{const d=[];let p=0;const f=t=>{if(p)d.push(t-p);p=t;if(d.length<45)requestAnimationFrame(f);else{d.sort((a,b)=>a-b);const m=d[d.length>>1];hz=Math.round(1000/m);log(`display refresh ≈ ${hz} Hz`,'ok');stats()}};requestAnimationFrame(f)})();
 
-/* ---------- Smooth scroll for header nav: native compositor scroll, heavy effects paused while moving ---------- */
-let sd=0;const smooth=to=>{if(lite())return scrollTo(0,to);html.classList.add('sc');const end=()=>{html.classList.remove('sc');removeEventListener('scroll',bump)},bump=()=>{clearTimeout(sd);sd=setTimeout(end,140)};addEventListener('scroll',bump,{passive:true});bump();scrollTo({top:to,behavior:'smooth'})};
+/* ---------- Smooth scroll for header nav (native) ---------- */
+const smooth=to=>scrollTo({top:to,behavior:lite()?'auto':'smooth'});
 document.querySelector('header.nav').addEventListener('click',e=>{const l=e.target.closest('a[href^="#"]');if(!l)return;e.preventDefault();const id=l.getAttribute('href').slice(1),el=id?document.getElementById(id):null;
 smooth(el?el.getBoundingClientRect().top+scrollY-72:0);try{history.replaceState(null,'',id?'#'+id:location.pathname)}catch{}});
