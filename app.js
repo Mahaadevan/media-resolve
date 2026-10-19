@@ -25,9 +25,9 @@ aiff:P('Audio · AIFF','48 kHz PCM, big-endian.',{v:'none',a:'pcm24',c:'aiff',sr
 flac:P('Audio · FLAC','Lossless, smaller than WAV.',{v:'none',a:'pcm24',c:'flac',sr:'48000'})};
 const FEATS=['Any input format|Everything ffmpeg can read','Platform presets|YouTube, Reels, TikTok, X, Facebook…','Private|Files never leave your browser','Format menus|Codec, audio, container, size, fps','Dev menu|Command, logs, stats, file analysis','Glass UI|Dark / light, Resolve gradient'];
 const fill=(id,o)=>$(id).innerHTML=Object.entries(o).map(([k,v])=>`<option value="${k}">${Array.isArray(v)?v[0]:v}</option>`).join('');
-fill('#vc',VC);fill('#ac',AC);fill('#ct',CT);fill('#res',RES);fill('#fps',FPS);fill('#rot',ROT);fill('#fit',FIT);fill('#sr',SR);
+fill('#vc',VC);fill('#ac',AC);fill('#ct',CT);fill('#res',RES);fill('#fps',FPS);fill('#fit',FIT);fill('#sr',SR);
 $('#featList').innerHTML=FEATS.map(f=>{const[a,b]=f.split('|');return`<div class="glass"><b>${a}</b><br><span class="muted">${b}</span></div>`}).join('');
-let ff,file,loaded=false,busy=false,url,lines=[],t0=0,inSize=0,outSize=0,elapsed=0,cap=null;const plyr=new Plyr('#player');
+let items=[],sel=-1,ff,file,loaded=false,busy=false,url,lines=[],t0=0,inSize=0,outSize=0,elapsed=0,cap=null;const plyr=new Plyr('#player');
 const errMsg=e=>e instanceof Error?e.message:typeof e==='string'?e:(e&&e.message)||(()=>{try{return JSON.stringify(e)}catch{return''}})()||'Unknown error';
 function toast(m,e){const t=document.createElement('div');t.className='toast'+(e?' err':'');t.textContent=m;$('#toasts').append(t);animate(t,{opacity:[0,1],x:[40,0]},{duration:.3});setTimeout(()=>t.remove(),4500)}
 function log(s,c){const d=document.createElement('div');c=c||(/error|invalid|fail|no such|unknown/i.test(s)?'err':/warn/i.test(s)?'warn':'');d.className=c;const l=`[${new Date().toLocaleTimeString()}] ${s}`;d.textContent=l;lines.push(l);const L=$('#log');L.append(d);while(L.childElementCount>2000)L.firstChild.remove();L.scrollTop=L.scrollHeight}
@@ -39,7 +39,7 @@ await ff.load({coreURL:await toBlobURL(b+'ffmpeg-core.js','text/javascript'),was
 const IN=()=>{const x=(file.name.split('.').pop()||'').toLowerCase();return'in.'+(/^[a-z0-9]{1,5}$/.test(x)?x:'bin')};
 const AUD={wav:{pcm16:'pcm_s16le',pcm24:'pcm_s24le'},aiff:{pcm16:'pcm_s16be',pcm24:'pcm_s24be'}};
 function setCT(noV){const s=$('#ct'),k=noV?'a':'v';if(s.dataset.k===k)return;const cur=s.value;fill('#ct',noV?CTA:CT);s.dataset.k=k;if([...s.options].some(o=>o.value===cur))s.value=cur}
-function build(cli){const v=$('#vc').value,a=$('#ac').value,r=$('#res').value,f=$('#fps').value,rot=$('#rot').value,fit=$('#fit').value,sr=$('#sr').value,noV=v==='none',ct=$('#ct').value;
+function build(cli){const v=$('#vc').value,a=$('#ac').value,r=$('#res').value,f=$('#fps').value,rot=rotv(),fit=$('#fit').value,sr=$('#sr').value,noV=v==='none',ct=$('#ct').value;
 const ext=noV?(CTA[ct]?ct:'wav'):ct,ex=$('#extra').value.trim().split(/\s+/).filter(Boolean);
 let sc='';if(r){const[w,h]=r.split(':');sc=fit==='crop'?`scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},setsar=1`:`scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2,setsar=1`}
 const vf=[rot,sc,f&&`fps=${f}`].filter(Boolean).join(','),bd=a==='pcm24'?'pcm24':'pcm16';
@@ -49,18 +49,22 @@ return{ext,out:'out.'+ext,args:['-hide_banner','-loglevel',$('#ll').value,'-i',i
 function refresh(){setCT($('#vc').value==='none');$('#cmd').textContent='ffmpeg '+build(true).args.join(' ');$('#go').textContent='Convert → '+build(false).ext.toUpperCase()}
 $('#presets').innerHTML=Object.entries(PRESETS).map(([k,p])=>`<button data-k="${k}">${p.n}</button>`).join('');
 $('#presets').onclick=e=>{const k=e.target.dataset.k;if(!k)return;const p=PRESETS[k];document.querySelectorAll('#presets button').forEach(b=>b.classList.toggle('on',b===e.target));$('#pdesc').textContent=p.d;$('#vc').value=p.v;setCT(p.v==='none');$('#ac').value=p.a;$('#ct').value=p.c;$('#res').value=p.r;$('#fps').value=p.f;$('#fit').value=p.fit;$('#sr').value=p.sr;refresh()};
-$('#presets button').click();['vc','ac','ct','res','fps','rot','fit','sr','extra','ll'].forEach(i=>$('#'+i).addEventListener('input',()=>{if(['vc','ac','ct','res','fps','fit','sr'].includes(i))document.querySelectorAll('#presets button').forEach(b=>b.classList.remove('on'));refresh()}));
+$('#presets button').click();['vc','ac','ct','res','fps','fit','sr','extra','ll'].forEach(i=>$('#'+i).addEventListener('input',()=>{if(['vc','ac','ct','res','fps','fit','sr'].includes(i))document.querySelectorAll('#presets button').forEach(b=>b.classList.remove('on'));refresh()}));
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let files=[],sel=-1;const OKX=/\.(mkv|mts|m2ts|flv|wmv|avi|ts|mxf|3gp|mov|mp4|webm|m4a|mp3|wav|flac|ogg|aac|aif|aiff|opus)$/i,isAud=f=>/^audio\//.test(f.type)||/\.(m4a|mp3|wav|flac|ogg|aac|aif|aiff|opus)$/i.test(f.name);
-const upd=()=>['#go','#frame','#analyze','#all'].forEach(s=>$(s).disabled=busy||!file);
-function render(){$('#queue').innerHTML=files.map((f,i)=>`<div class="q${i===sel?' on':''}" data-i="${i}"><span>${esc(f.name)}</span><small>${(f.size/1048576).toFixed(1)} MB</small><b data-x="${i}" title="Remove">×</b></div>`).join('');$('#all').hidden=files.length<2}
-function choose(i){sel=i;file=files[i];render();if(!file){$('#fname').textContent='No file selected';$('#info').textContent='File info appears after loading a file.';try{plyr.stop()}catch{}upd();refresh();return}
-inSize=file.size;outSize=0;elapsed=0;$('#fname').textContent=files.length>1?`${files.length} files queued`:file.name;if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);
+const OKX=/\.(mkv|mts|m2ts|flv|wmv|avi|ts|mxf|3gp|mov|mp4|webm|m4a|mp3|wav|flac|ogg|aac|aif|aiff|opus)$/i,isAud=f=>/^audio\//.test(f.type)||/\.(m4a|mp3|wav|flac|ogg|aac|aif|aiff|opus)$/i.test(f.name);
+function rotv(){return items[sel]?items[sel].rot:''}
+const STL={'':'Pending',run:'Converting…',done:'Done',err:'Failed'};
+const upd=()=>{['#go','#frame','#analyze'].forEach(s=>$(s).disabled=busy||!file);$('#all').disabled=busy||!items.length};
+function render(){$('#queue').innerHTML=items.length?items.map((it,i)=>`<div class="q${i===sel?' on':''}" data-i="${i}"><span class="qn">${esc(it.f.name)}</span><small>${(it.f.size/1048576).toFixed(1)} MB</small><select data-r="${i}" title="Rotate this file">${Object.entries(ROT).map(([k,v])=>`<option value="${k}"${k===it.rot?' selected':''}>${v==='None'?'↻ No rotation':'↻ '+v}</option>`).join('')}</select><em class="st ${it.st}">${STL[it.st]}</em><b data-x="${i}" title="Remove">×</b></div>`).join(''):'<p class="muted">No media yet — add files or drop them above.</p>'}
+function choose(i){sel=i;file=items[i]&&items[i].f;render();if(!file){$('#fname').textContent='No file selected';$('#info').textContent='File info appears after loading a file.';try{plyr.stop()}catch{}upd();refresh();return}
+inSize=file.size;outSize=0;elapsed=0;$('#fname').textContent=items.length>1?`${items.length} files queued`:file.name;if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);
 plyr.source={type:'video',sources:[{src:url,type:file.type||'video/mp4'}]};$('#info').textContent=`${file.name}\n${(file.size/1048576).toFixed(1)} MB · ${file.type||'unknown type'}`;log(`Selected ${file.name} (${file.size} bytes, ${file.type||'?'})`,'ok');
 if(isAud(file)&&$('#vc').value!=='none')$('#presets [data-k=wav]').click();upd();refresh();stats()}
-function addFiles(l){let n=0;for(const f of l){if(!/^(video|audio)\//.test(f.type)&&!OKX.test(f.name)){toast('Skipped '+f.name,1);continue}files.push(f);n++}if(!n)return;toast(n+' file'+(n>1?'s':'')+' added');sel<0?choose(files.length-n):render()}
-$('#queue').onclick=e=>{if(busy)return;const x=e.target.dataset.x;if(x!==undefined){files.splice(+x,1);choose(files.length?Math.min(sel>+x?sel-1:sel,files.length-1):-1)}else{const q=e.target.closest('[data-i]');q&&choose(+q.dataset.i)}};
-$('#add').onclick=()=>$('#file').click();$('#all').onclick=async()=>{if(busy)return;for(let i=0;i<files.length;i++){choose(i);await $('#go').onclick()}};
+function addFiles(l){let n=0;for(const f of l){if(!/^(video|audio)\//.test(f.type)&&!OKX.test(f.name)){toast('Skipped '+f.name,1);continue}items.push({f,rot:'',st:''});n++}if(!n)return;toast(n+' file'+(n>1?'s':'')+' added');sel<0?choose(items.length-n):(render(),upd())}
+$('#queue').onclick=e=>{if(busy||e.target.closest('select'))return;const x=e.target.dataset.x;if(x!==undefined){items.splice(+x,1);choose(items.length?Math.min(sel>+x?sel-1:sel,items.length-1):-1)}else{const q=e.target.closest('[data-i]');q&&choose(+q.dataset.i)}};
+$('#queue').onchange=e=>{const r=e.target.dataset.r;if(r===undefined)return;items[+r].rot=e.target.value;if(+r===sel)refresh();toast('Rotation set: '+items[+r].f.name)};
+$('#add').onclick=()=>$('#file').click();$('#clr').onclick=()=>{if(!busy){items=[];choose(-1)}};
+$('#all').onclick=async()=>{if(busy)return;for(let i=0;i<items.length;i++){choose(i);await $('#go').onclick()}};
 const d=$('#drop');d.onclick=()=>$('#file').click();d.onkeydown=e=>{if(e.key==='Enter')$('#file').click()};$('#file').onchange=e=>{addFiles(e.target.files);e.target.value=''};
 ['dragover','dragenter'].forEach(v=>d.addEventListener(v,e=>{e.preventDefault();d.classList.add('on')}));
 ['dragleave','drop'].forEach(v=>d.addEventListener(v,e=>{e.preventDefault();d.classList.remove('on')}));d.ondrop=e=>addFiles(e.dataTransfer.files);
@@ -72,13 +76,21 @@ log('ffmpeg '+args.join(' '),'ok');
 try{await load();await ff.writeFile(IN(),await fetchFile(file));const code=await ff.exec(args);if(code!==0)throw new Error(`ffmpeg exited with code ${code} — see Dev ▸ log`);
 let data;try{data=await ff.readFile(out)}catch{throw new Error('No output file was produced — see Dev ▸ log')}if(!data||!data.length)throw new Error('Output is empty — encoder may be missing in this wasm build');
 const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([data],{type:mime}));l.download=name;l.className='btn';l.textContent='Download '+name;$('#out').append(l);animate(l,{opacity:[0,1],y:[12,0]});
-outSize=data.length;elapsed=performance.now()-t0;$('#pb').style.width='100%';$('#pt').textContent='100%';log(`Done in ${(elapsed/1000).toFixed(1)} s → ${name} (${outSize} bytes)`,'ok');toast('Done ✔')}
-catch(e){const m=errMsg(e);log('ERROR: '+m,'err');toast('Failed: '+m+(/memory|abort|out of bounds/i.test(m)?' (file may be too large for wasm)':''),1);await reset()}
+outSize=data.length;elapsed=performance.now()-t0;$('#pb').style.width='100%';$('#pt').textContent='100%';log(`Done in ${(elapsed/1000).toFixed(1)} s → ${name} (${outSize} bytes)`,'ok');toast('Done ✔');return true}
+catch(e){const m=errMsg(e);log('ERROR: '+m,'err');toast('Failed: '+m+(/memory|abort|out of bounds/i.test(m)?' (file may be too large for wasm)':''),1);await reset();return false}
 finally{try{await ff.deleteFile(IN())}catch{}try{await ff.deleteFile(out)}catch{}setBusy(false);stats()}}
-$('#go').onclick=()=>{const b=build(false),base=file.name.replace(/\.[^.]+$/,'');if($('#vc').value==='none'&&$('#ac').value==='none')return toast('Audio-only needs an audio codec',1);
-return run(b.args,b.out,({wav:'audio/wav',aiff:'audio/aiff',flac:'audio/flac'})[b.ext]||'video/quicktime',`${base}_resolve.${b.ext}`)};
-$('#frame').onclick=()=>{const img=$('#fimg').value,raw=$('#ft').value,t=raw===''?(plyr.currentTime||0):parseFloat(raw);if(!isFinite(t)||t<0)return toast('Invalid time',1);
-const rot=$('#rot').value,out='frame.'+img;run(['-hide_banner','-loglevel',$('#ll').value,'-ss',t.toFixed(3),'-i',IN(),...(rot?['-vf',rot]:[]),'-frames:v','1',...(img==='jpg'?['-q:v','2']:[]),out],out,img==='png'?'image/png':'image/jpeg',`${file.name.replace(/\.[^.]+$/,'')}_${t.toFixed(2)}s.${img}`)};
+$('#go').onclick=async()=>{if(!file)return;const it=items[sel],b=build(false),base=file.name.replace(/\.[^.]+$/,'');if($('#vc').value==='none'&&$('#ac').value==='none')return toast('Audio-only needs an audio codec',1);
+it.st='run';render();const ok=await run(b.args,b.out,({wav:'audio/wav',aiff:'audio/aiff',flac:'audio/flac'})[b.ext]||'video/quicktime',`${base}_resolve.${b.ext}`);it.st=ok?'done':'err';render()};
+const RTX={'transpose=1':90,'transpose=2':-90,'transpose=1,transpose=1':180};
+async function grab(t,img,rot){const v=plyr.media;if(!v||!v.videoWidth)throw new Error('browser cannot decode this video');
+if(Math.abs(v.currentTime-t)>.01)await new Promise(ok=>{const s=()=>{v.removeEventListener('seeked',s);ok()};v.addEventListener('seeked',s);v.currentTime=Math.min(t,v.duration||t);setTimeout(ok,4000)});
+const a=RTX[rot]||0,w=v.videoWidth,h=v.videoHeight,c=document.createElement('canvas'),sw=Math.abs(a)===90;c.width=sw?h:w;c.height=sw?w:h;const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(a*Math.PI/180);x.drawImage(v,-w/2,-h/2);
+return new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(new Error('Canvas export failed')),img==='png'?'image/png':'image/jpeg',.95))}
+$('#frame').onclick=async()=>{if(!file||busy)return;const img=$('#fimg').value,raw=$('#ft').value,rot=rotv(),t=raw===''?(plyr.currentTime||0):parseFloat(raw);if(!isFinite(t)||t<0)return toast('Invalid time',1);
+const name=`${file.name.replace(/\.[^.]+$/,'')}_${t.toFixed(2)}s.${img}`;
+try{const blob=await grab(t,img,rot),l=document.createElement('a');l.href=URL.createObjectURL(blob);l.download=name;l.className='btn';l.textContent='Download '+name;$('#out').append(l);animate(l,{opacity:[0,1],y:[12,0]});toast('Frame extracted ✔');log(`Frame saved ${name} (${blob.size} bytes)`,'ok');return}
+catch(e){log('Canvas capture unavailable ('+errMsg(e)+') — using ffmpeg','warn')}
+const out='frame.'+img;run(['-hide_banner','-loglevel',$('#ll').value,'-i',IN(),'-ss',t.toFixed(3),...(rot?['-vf',rot]:[]),'-frames:v','1','-update','1',...(img==='jpg'?['-pix_fmt','yuvj420p','-q:v','2']:['-pix_fmt','rgb24']),out],out,img==='png'?'image/png':'image/jpeg',name)};
 $('#analyze').onclick=async()=>{if(busy||!file)return;setBusy(true);cap=[];try{await load();await ff.writeFile(IN(),await fetchFile(file));await ff.exec(['-hide_banner','-i',IN()]);
 const s=cap.filter(m=>/Duration|Stream #|Input #|major_brand|encoder/i.test(m)).map(m=>m.trim());$('#info').textContent=file.name+'\n'+(s.join('\n')||'No stream info found');toast('Analysis complete')}
 catch(e){const m=errMsg(e);log('ERROR: '+m,'err');toast('Analyze failed: '+m,1);await reset()}finally{cap=null;try{await ff.deleteFile(IN())}catch{}setBusy(false)}};
