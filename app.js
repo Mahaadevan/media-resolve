@@ -30,7 +30,7 @@ fill('#vc',VC);fill('#ac',AC);fill('#ct',CT);fill('#res',RES);fill('#fps',FPS);f
 $('#featList').innerHTML=FEATS.map(f=>{const[a,b]=f.split('|');return`<div class="glass"><b>${a}</b><br><span class="muted">${b}</span></div>`}).join('');
 let items=[],sel=-1,ff,file,loaded=false,busy=false,url,lines=[],t0=0,inSize=0,outSize=0,elapsed=0,cap=null;const plyr=new Plyr('#player');
 const errMsg=e=>e instanceof Error?e.message:typeof e==='string'?e:(e&&e.message)||(()=>{try{return JSON.stringify(e)}catch{return''}})()||'Unknown error';
-function toast(m,e){const t=document.createElement('div');t.className='toast'+(e?' err':'');t.textContent=m;$('#toasts').append(t);A(t,{opacity:[0,1],transform:['translateX(40px)','translateX(0px)']},{duration:.3});setTimeout(()=>t.remove(),4500)}
+function toast(m,e){const t=document.createElement('div');t.className='toast'+(e?' err':'');t.textContent=m;$('#toasts').append(t);setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),lite()?0:420)},4500)}
 function log(s,c){const d=document.createElement('div');c=c||(/error|invalid|fail|no such|unknown/i.test(s)?'err':/warn/i.test(s)?'warn':'');d.className=c;const l=`[${new Date().toLocaleTimeString()}] ${s}`;d.textContent=l;lines.push(l);const L=$('#log');L.append(d);while(L.childElementCount>2000)L.firstChild.remove();L.scrollTop=L.scrollHeight}
 function stats(){const mb=n=>n?(n/1048576).toFixed(2)+' MB':'–';$('#stats').innerHTML=[['Engine',loaded?'ready':'not loaded'],['Isolated',self.crossOriginIsolated?'yes':'no (single thread)'],['Input',mb(inSize)],['Output',mb(outSize)],['Ratio',inSize&&outSize?(outSize/inSize).toFixed(2)+'×':'–'],['Elapsed',elapsed?(elapsed/1000).toFixed(1)+' s':'–']].map(([a,b])=>`<div>${a}<b>${b}</b></div>`).join('')}
 function mk(){ff=new FFmpeg();ff.on('log',({message})=>{log(message);if(cap)cap.push(message)});ff.on('progress',({progress})=>{const p=Math.min(100,Math.max(0,Math.round((progress||0)*100)));$('#pb').style.width=p+'%';$('#pt').textContent=p+'%'})}mk();
@@ -105,7 +105,7 @@ document.addEventListener('mouseover',e=>{const el=e.target.closest('[data-tip]'
 $('#themeT').onclick=()=>{const h=document.documentElement;h.dataset.theme=h.dataset.theme==='dark'?'light':'dark';try{localStorage.theme=h.dataset.theme}catch{}};
 try{document.documentElement.dataset.theme=localStorage.theme||'dark'}catch{}
 try{if(localStorage.lite==='1')html.setAttribute('data-lite','')}catch{}
-A('.hero > *, .card',{opacity:[0,1],transform:['translateY(24px)','translateY(0px)']},{delay:stagger(.08),duration:.6});stats();
+A('.drop, .card',{opacity:[0,1],transform:['translateY(24px)','translateY(0px)']},{delay:stagger(.08),duration:.6});stats();
 document.addEventListener('pointerdown',e=>{const b=e.target.closest('.btn,.presets button,.ico');if(!b||b.disabled||lite())return;const r=b.getBoundingClientRect(),s=Math.max(r.width,r.height)*2,p=document.createElement('span');p.className='rip';p.style.cssText=`width:${s}px;height:${s}px;left:${e.clientX-r.left-s/2}px;top:${e.clientY-r.top-s/2}px`;b.append(p);setTimeout(()=>p.remove(),700)});
 
 /* ---------- ASCII circular audio spectrum (Web Audio + canvas) ---------- */
@@ -154,10 +154,55 @@ refresh(){if(!cv.hidden){size();kick()}}}})();
 plyr.on('loadedmetadata',()=>spec.meta());plyr.on('play',()=>spec.play(true));plyr.on('playing',()=>spec.play(true));plyr.on('pause',()=>spec.play(false));plyr.on('ended',()=>spec.play(false));
 
 /* ---------- Lite mode (disable UI effects) ---------- */
-function setLite(on,save){on?html.setAttribute('data-lite',''):html.removeAttribute('data-lite');$('#fxT').checked=on;if(save){try{localStorage.lite=on?'1':'0'}catch{}toast(on?'Lite mode on — effects disabled':'Effects enabled')}spec.refresh()}
+function glitch(){if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;html.classList.remove('glitch');void html.offsetWidth;html.classList.add('glitch');setTimeout(()=>html.classList.remove('glitch'),460)}
+function setLite(on,save){on?html.setAttribute('data-lite',''):html.removeAttribute('data-lite');$('#fxT').checked=on;if(save){try{localStorage.lite=on?'1':'0'}catch{}toast(on?'Lite mode on — effects disabled':'Effects enabled')}spec.refresh();if(save)glitch()}
 $('#fxT').onchange=e=>setLite(e.target.checked,true);
 try{if(localStorage.lite==='1')setLite(true)}catch{}
 
-/* ---------- Mouse glow: follows the pointer with zero delay, compositor-only (transform) ---------- */
-(()=>{const g=$('#glow'),set=(x,y)=>g.style.transform=`translate3d(${x}px,${y}px,0)`;set(innerWidth/2,innerHeight/3);
-addEventListener('pointermove',e=>set(e.clientX,e.clientY),{passive:true})})();
+/* ---------- Mouse glow: soft follow, time-based so it feels the same at 60/120/144 Hz ---------- */
+(()=>{const g=$('#glow'),RATE=9;/* higher = snappier. 9/s is about 0.14 per frame at 60 fps */
+let x=innerWidth/2,y=innerHeight/3,tx=x,ty=y,raf=0,last=0;const set=()=>g.style.transform=`translate3d(${x}px,${y}px,0)`;set();
+const f=t=>{const dt=Math.min(.05,Math.max(.001,(t-last)/1000)),k=1-Math.exp(-dt*RATE);last=t;x+=(tx-x)*k;y+=(ty-y)*k;set();raf=Math.abs(tx-x)>.1||Math.abs(ty-y)>.1?requestAnimationFrame(f):0};
+addEventListener('pointermove',e=>{if(lite())return;tx=e.clientX;ty=e.clientY;if(!raf){last=performance.now();raf=requestAnimationFrame(f)}},{passive:true})})();
+
+/* ---------- Themed dropdowns (desktop only; touch keeps the native picker) ---------- */
+(()=>{const menu=document.createElement('div');menu.id='dd';menu.setAttribute('role','listbox');menu.hidden=true;document.body.append(menu);
+const fine=matchMedia('(pointer:fine)');let cur=null,act=-1;
+const mark=sc=>{[...menu.children].forEach((c,i)=>c.classList.toggle('act',i===act));const el=menu.children[act];if(sc&&el)el.scrollIntoView({block:'nearest'})};
+function close(){if(menu.hidden)return;menu.hidden=true;cur&&cur.setAttribute('aria-expanded','false');cur=null}
+function open(s){close();cur=s;s.setAttribute('aria-expanded','true');menu.innerHTML=[...s.options].map((o,i)=>`<div role="option" data-i="${i}"${o.selected?' class="sel"':''}>${esc(o.text)}</div>`).join('');
+menu.hidden=false;menu.style.maxHeight='';menu.style.minWidth=s.offsetWidth+'px';
+const r=s.getBoundingClientRect(),below=innerHeight-r.bottom-14,above=r.top-14,up=menu.scrollHeight>below&&above>below;menu.style.maxHeight=Math.max(120,Math.min(340,up?above:below))+'px';
+const mh=menu.offsetHeight,mw=menu.offsetWidth;menu.style.left=Math.max(8,Math.min(innerWidth-mw-8,r.left))+'px';menu.style.top=(up?r.top-mh-6:r.bottom+6)+'px';menu.style.transformOrigin=up?'bottom':'top';
+act=Math.max(0,s.selectedIndex);mark(true)}
+function pick(i){const s=cur;if(!s||!s.options[i])return;close();const v=s.options[i].value;if(s.value!==v){s.value=v;s.dispatchEvent(new Event('input',{bubbles:true}));s.dispatchEvent(new Event('change',{bubbles:true}))}s.focus({preventScroll:true})}
+document.addEventListener('mousedown',e=>{const s=e.target.closest&&e.target.closest('select');
+if(s&&fine.matches&&e.button===0&&!s.disabled){e.preventDefault();s.focus({preventScroll:true});cur===s&&!menu.hidden?close():open(s);return}
+if(!menu.contains(e.target))close()},true);
+menu.onmousedown=e=>e.preventDefault();menu.onclick=e=>{const o=e.target.closest('[data-i]');o&&pick(+o.dataset.i)};
+menu.onmousemove=e=>{const o=e.target.closest('[data-i]');if(o&&+o.dataset.i!==act){act=+o.dataset.i;mark(false)}};
+document.addEventListener('keydown',e=>{if(!menu.hidden){const n=menu.children.length;
+if(e.key==='ArrowDown'){act=(act+1)%n;mark(true);e.preventDefault()}else if(e.key==='ArrowUp'){act=(act-1+n)%n;mark(true);e.preventDefault()}
+else if(e.key==='Enter'||e.key===' '){pick(act);e.preventDefault()}else if(e.key==='Escape'||e.key==='Tab')close();return}
+const s=e.target;if(fine.matches&&s.tagName==='SELECT'&&(e.key==='Enter'||e.key===' '||(e.altKey&&e.key==='ArrowDown'))){e.preventDefault();open(s)}},true);
+addEventListener('scroll',e=>{if(!menu.contains(e.target))close()},true);addEventListener('resize',close);addEventListener('blur',close)})();
+
+/* ---------- Text-generation intro: words stream in top to bottom with a caret ---------- */
+function genText(){const done=()=>html.classList.remove('gen');
+if(lite()||matchMedia('(prefers-reduced-motion:reduce)').matches)return done();
+try{const vh=innerHeight*1.25,tw=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;const p=n.parentElement;
+if(!p||!p.closest('.nav,main,footer')||p.closest('select,option,code,script,style,.log,#toasts,#tt,[hidden],h1 b'))return NodeFilter.FILTER_REJECT;return NodeFilter.FILTER_ACCEPT}}),nodes=[];let nd;while(nd=tw.nextNode())nodes.push(nd);
+const units=[],rg=document.createRange();
+for(const n of nodes){rg.selectNodeContents(n);const rc=rg.getBoundingClientRect();if(!rc.width||rc.top>vh)continue;
+const one=/flex|grid/.test(getComputedStyle(n.parentElement).display),parts=one?[n.nodeValue]:n.nodeValue.split(/(\s+)/),fr=document.createDocumentFragment();
+for(const s of parts){if(!s)continue;if(!one&&/^\s+$/.test(s)){fr.append(s);continue}const sp=document.createElement('span');sp.className='gw0';sp.textContent=s;fr.append(sp);units.push(sp)}n.replaceWith(fr)}
+document.querySelectorAll('h1 b').forEach(b=>{b.classList.add('gw0');units.push(b)});
+const R=units.map(u=>{const r=u.getBoundingClientRect();return{u,x:r.right,y:r.top,h:r.height,k:Math.round((r.top+r.height/2)/14)}}).filter(o=>o.h>0).sort((a,b)=>a.k-b.k||a.x-b.x);
+if(!R.length)return done();
+const step=Math.min(.022,2.2/R.length),d0=.1;R.forEach((o,i)=>{o.u.style.animationDelay=(d0+i*step).toFixed(3)+'s';o.u.classList.replace('gw0','gw')});done();
+const c=document.createElement('i');c.id='caret';document.body.append(c);const t0=performance.now(),end=d0+R.length*step;
+const tick=t=>{const s=(t-t0)/1000,k=Math.floor((s-d0)/step);if(k>=0){const o=R[Math.min(R.length-1,k)];c.style.transform=`translate(${o.x+3}px,${o.y}px)`;c.style.height=o.h+'px';c.style.opacity=1}
+if(s<end+.35)requestAnimationFrame(tick);else c.remove()};requestAnimationFrame(tick);
+setTimeout(()=>R.forEach(o=>{o.u.classList.remove('gw');o.u.style.animationDelay='';if(o.u.tagName==='SPAN'&&o.u.parentNode&&o.u.firstChild)o.u.replaceWith(o.u.firstChild)}),(end+.9)*1000)}
+catch(e){done();log('intro: '+errMsg(e),'warn')}}
+genText();
