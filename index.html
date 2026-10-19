@@ -1,7 +1,7 @@
 <!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Media Resolve – Convert any media for DaVinci Resolve (Linux Free)</title>
-<meta name="description" content="Convert any video/audio to DaVinci Resolve Linux-free friendly formats (DNxHR, ProRes, WAV) in your browser.">
+<title>Media Resolve – Media Converter for DaVinci Resolve in Linux</title>
+<meta name="description" content="Convert any video/audio to formats supported by DaVinci Resolve in Linux (DNxHR, ProRes, WAV) localy in your browser.">
 <script>try{history.scrollRestoration='manual'}catch(e){}scrollTo(0,0);try{if(localStorage.lite!=='1'&&!matchMedia('(prefers-reduced-motion:reduce)').matches){document.documentElement.classList.add('gen');setTimeout(function(){document.documentElement.classList.remove('gen')},5000)}}catch(e){}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
 <link rel="icon" type="image/png" sizes="256x256" href="favicon.png?v=2"><link rel="shortcut icon" type="image/png" href="favicon.png?v=2"><link rel="apple-touch-icon" href="logo.png">
@@ -13,9 +13,9 @@
 <button id="themeT" class="ico" data-tip="Toggle dark / light" aria-label="Toggle theme">🔆</button></div></header>
 <main>
 <section class="hero"><h1>Any media. <b>Resolve-ready.</b></h1>
-<p class="muted">DaVinci Resolve Free on Linux can't import many codecs (H.264/H.265/AAC…). Drop anything here — conversion runs 100% in your browser.</p>
+<p class="muted">DaVinci Resolve on Linux does not support many codecs (H.264/H.265/AAC…). Drop anything here to convert into supported formats localy in your browser.</p>
 <div id="drop" class="drop glass" tabindex="0"><input id="file" type="file" accept="video/*,audio/*,.mkv,.mts,.m2ts,.flv,.wmv,.avi,.webm,.mxf,.ts,.flac,.aiff,.opus" multiple hidden>
-<strong>Drag &amp; drop</strong> or click to choose a file<small id="fname">No file selected</small></div>
+<strong>Drag &amp; Drop</strong> or click to choose a file<small id="fname">No file selected</small></div>
 </section>
 <section id="dev" class="card glass dev" hidden><h2>Dev menu</h2>
 <code id="cmd">ffmpeg …</code>
@@ -25,7 +25,7 @@
 <div id="stats" class="stats"></div><div id="log" class="log" aria-live="polite"></div>
 <small class="muted">Wasm can't use GPU encoders. For NVENC/VAAPI run the copied CLI command locally.</small></section>
 <section class="grid">
-<div class="card glass"><h2>Workflow preset <span class="tip" tabindex="0" data-tip="Presets fill the menus below with codecs Resolve Free on Linux reads reliably. You can still change every menu.">?</span></h2>
+<div class="card glass"><h2>Workflow Presets <span class="tip" tabindex="0" data-tip="Presets fill the menus below with codecs Resolve Free on Linux reads reliably. You can still change every menu.">?</span></h2>
 <div id="presets" class="presets"></div><p id="pdesc" class="muted"></p>
 <div class="fields">
 <label data-tip="Video codec/profile. DNxHR = fast editing, ProRes = grading/alpha.">Video codec<select id="vc"></select></label>
@@ -41,7 +41,7 @@
 <label>Image<select id="fimg"><option value="png">PNG</option><option value="jpg">JPG</option></select></label>
 <button id="frame" class="btn ghost" disabled>Extract frame</button></div>
 <div class="bar" hidden><div id="pb"></div><span id="pt">0%</span></div><div id="out"></div></div>
-<div class="card glass player"><h2>Player <span class="tip" tabindex="0" data-tip="Previews the source with the Plyr API. Some codecs can't play in a browser; conversion still works.">?</span></h2><video id="player" playsinline controls></video>
+<div class="card glass player"><h2>Media Player <span class="tip" tabindex="0" data-tip="Previews the source with the Plyr API. Some codecs can't play in a browser; conversion still works.">?</span></h2><video id="player" playsinline controls></video>
 <p class="muted" id="info">File info appears after loading a file.</p>
 <div class="qwrap"><div class="qhead"><h3>Queue <span class="tip" tabindex="0" data-tip="Click a file to preview it. Each file has its own rotation. Convert all runs every file with the current menu settings.">?</span></h3>
 <div class="qbar"><button id="add" class="btn ghost">＋ Add files</button><button id="clr" class="btn ghost">Clear</button><button id="all" class="btn" disabled>Convert all</button></div></div><div id="queue" class="queue"></div></div></div></section>
