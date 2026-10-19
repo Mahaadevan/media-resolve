@@ -1,3 +1,4 @@
+
 :root{color-scheme:dark;--g:linear-gradient(135deg,#6a121b 0%,#8f1a22 42%,#ef4136 100%);--gt:linear-gradient(120deg,#ff8a6b,#ef4136 55%,#b3202a);--bg:#0b0c10;--c:#171922;--t:#eceef5;--m:#9096aa;--b:#ffffff1f;--acc:#ef4136;--plyr-color-main:#ef4136}
 [data-theme=light]{color-scheme:light;--bg:#f2f4fa;--c:#ffffff;--t:#14161f;--m:#5d6378;--b:#14161f1f}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:16px/1.5 Inter,system-ui,sans-serif;transition:background .3s,color .3s}
@@ -25,7 +26,7 @@ button{font:inherit;color:var(--t)}.btn{display:inline-block;text-decoration:non
 .bar{height:12px;border-radius:9px;background:color-mix(in srgb,var(--c) 70%,transparent);border:1px solid var(--b);position:relative;overflow:hidden;margin-bottom:12px}.bar[hidden]{display:none}#pb{height:100%;width:0;background:var(--g);transition:width .25s}#pt{position:absolute;right:8px;top:-4px;font-size:.7rem;color:var(--t)}
 video{width:100%;border-radius:12px;background:#000}#info{white-space:pre-line;font-size:.82rem;word-break:break-word}
 .ico{background:color-mix(in srgb,var(--c) 50%,transparent);border:1px solid var(--b);border-radius:50%;width:34px;height:34px;cursor:pointer}
-.sw{display:flex;flex-direction:row;align-items:center;gap:6px;flex:none;color:var(--t);min-width:0;cursor:pointer}.sw input{display:none}.sw span{width:36px;height:20px;border-radius:99px;background:var(--b);position:relative;transition:.25s}.sw span:after{content:"";position:absolute;inset:3px auto 3px 3px;width:14px;border-radius:50%;background:#fff;transition:.25s}.sw input:checked+span{background:var(--g)}.sw input:checked+span:after{transform:translateX(16px)}
+.sw{display:flex;flex-direction:row;align-items:center;gap:6px;flex:none;color:var(--t);min-width:0;cursor:pointer}.sw input{display:none}.sw .k{width:36px;height:20px;border-radius:99px;background:var(--b);position:relative;transition:.25s}.sw .k:after{content:"";position:absolute;inset:3px auto 3px 3px;width:14px;border-radius:50%;background:#fff;transition:.25s}.sw input:checked+.k{background:var(--g)}.sw input:checked+.k:after{transform:translateX(16px)}
 .tip{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--b);font-size:.7rem;cursor:help;vertical-align:middle;color:var(--t)}
 #tt{position:fixed;top:0;left:0;max-width:260px;padding:7px 11px;border-radius:10px;background:#111;color:#fff;font-size:.78rem;line-height:1.35;pointer-events:none;opacity:0;transition:opacity .15s;z-index:99999;border:1px solid #ffffff30;box-shadow:0 8px 30px #0008}
 .dev{margin-top:20px}.dev[hidden]{display:none}code{display:block;padding:10px;background:color-mix(in srgb,var(--c) 70%,transparent);border:1px solid var(--b);border-radius:10px;font-size:.78rem;overflow:auto;white-space:pre-wrap;word-break:break-all}
@@ -80,7 +81,7 @@ section{margin:56px 0}.feat{display:grid;grid-template-columns:repeat(auto-fit,m
 .plyr:fullscreen,.plyr:-webkit-full-screen,.plyr--fullscreen-fallback{border-radius:0}
 .plyr:fullscreen .plyr__video-wrapper,.plyr--fullscreen-fallback .plyr__video-wrapper,.plyr:fullscreen .plyr__poster{border-radius:0}
 /* Audio spectrum canvas */
-#spec{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;background:radial-gradient(circle at 50% 46%,#2a070b 0,#0a0709 55%,#050506 100%)}
+#spec{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;background:radial-gradient(ellipse at 50% 100%,#2a070b 0,#0a0709 60%,#050506 100%)}
 /* Lite mode: no blur, glow, animation or hover effects */
 [data-lite] *,[data-lite] *:before,[data-lite] *:after{transition:none!important}
 [data-lite]:not(.glitch) *,[data-lite]:not(.glitch) *:before,[data-lite]:not(.glitch) *:after{animation:none!important}
@@ -94,17 +95,32 @@ section{margin:56px 0}.feat{display:grid;grid-template-columns:repeat(auto-fit,m
 .toast.out{animation:tout .4s ease-in forwards}
 @keyframes tin{from{opacity:0;filter:blur(14px);transform:translateX(28px)}}
 @keyframes tout{to{opacity:0;filter:blur(14px);transform:translateX(28px)}}
-/* Subtle glitch when Lite mode is toggled */
-@keyframes gl{0%{transform:none}
-10%{transform:translate(-3px,1px)}
-22%{transform:translate(2px,-1px) skewX(-.5deg)}
-34%{transform:translate(-1px,0)}
-48%{transform:translate(3px,1px) skewX(.5deg)}
-62%{transform:translate(-2px,-1px)}
-78%{transform:translate(1px,0)}
+/* Text glitch when Lite mode is toggled: red/blue channel split + jitter across all site text */
+@keyframes gl{0%{transform:none;text-shadow:none}
+8%{transform:translate(-4px,0) skewX(-2deg);text-shadow:-3px 0 #ef4136,3px 0 #3aa0ff}
+18%{transform:translate(3px,1px);text-shadow:3px 0 #ef4136,-3px 0 #3aa0ff}
+28%{transform:none;text-shadow:none}
+38%{transform:translate(-2px,-1px) skewX(1.5deg);text-shadow:-5px 0 #ef4136,5px 0 #3aa0ff}
+50%{transform:translate(5px,0);text-shadow:4px 1px #ef4136,-4px -1px #3aa0ff}
+60%{transform:none;text-shadow:none}
+72%{transform:translate(-3px,1px) skewX(-1deg);text-shadow:-2px 0 #ef4136,2px 0 #3aa0ff}
+84%{transform:translate(2px,0);text-shadow:2px 0 #ef4136,-2px 0 #3aa0ff}
+100%{transform:none;text-shadow:none}}
+@keyframes gl2{0%{transform:none}
+10%{transform:translate(6px,0)}
+22%{transform:translate(-7px,0) skewX(3deg)}
+34%{transform:none}
+46%{transform:translate(4px,0) skewX(-3deg)}
+58%{transform:translate(-5px,0)}
+70%{transform:none}
+82%{transform:translate(3px,0)}
 100%{transform:none}}
-html.glitch .nav,html.glitch main,html.glitch footer{animation:gl .42s steps(1) both}
-@media(prefers-reduced-motion:reduce){html.glitch .nav,html.glitch main,html.glitch footer{animation:none}}
+html.glitch .nav,html.glitch main,html.glitch footer{animation:gl .6s steps(1) both}
+html.glitch .btn,html.glitch .presets button{text-shadow:inherit}
+html.glitch :is(h1,h2,h3,p,label,small,li,.nav nav a,.btn,.presets button,.feat div,.drop strong):nth-child(2n){animation:gl2 .6s steps(1) both}
+html.glitch :is(h1,h2,h3,p,label,small,li,.nav nav a,.btn,.presets button,.feat div,.drop strong):nth-child(3n){animation:gl2 .6s steps(1) .07s both}
+@media(prefers-reduced-motion:reduce){html.glitch *{animation:none!important}}
+[data-lite] .toast,[data-lite] #dd{animation:none!important}
 /* Themed dropdown menus (replace the native select popup on desktop) */
 select{cursor:pointer}
 #dd{position:fixed;z-index:99990;overflow:auto;padding:6px;border-radius:14px;color:var(--t);font-size:.88rem;background:color-mix(in srgb,var(--c) 82%,transparent);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);border:1px solid var(--b);box-shadow:0 14px 44px #0006;scrollbar-width:thin;scrollbar-color:var(--b) transparent;animation:ddin .2s cubic-bezier(.2,.8,.2,1) backwards}
@@ -118,5 +134,3 @@ html.gen .nav>*,html.gen main,html.gen footer{visibility:hidden}
 .gw0{opacity:0}
 .gw{animation:gen .38s ease-out both}
 @keyframes gen{from{opacity:0;filter:blur(6px)}to{opacity:1;filter:blur(0)}}
-#caret{position:fixed;left:0;top:0;font:700 16px/1 ui-monospace,Menlo,Consolas,monospace;white-space:pre;color:var(--acc);text-shadow:0 0 10px var(--acc);z-index:99998;pointer-events:none;opacity:0}
-#caret i{font-style:normal;animation:blink .5s steps(1) infinite}@keyframes blink{50%{opacity:0}}
