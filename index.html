@@ -4,10 +4,11 @@
 <meta name="description" content="Convert any video/audio to DaVinci Resolve Linux-free friendly formats (DNxHR, ProRes, WAV) in your browser.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
 <link rel="icon" type="image/png" href="favicon.png"><link rel="apple-touch-icon" href="logo.png">
-<link rel="stylesheet" href="style.css"></head><body>
+<link rel="stylesheet" href="style.css"></head><body><div id="glow" aria-hidden="true"></div>
 <header class="nav"><a class="logo" href="#"><img src="logo.png" alt="" width="28" height="28">Media Resolve</a>
 <nav><a href="#features">Features</a><a href="#how">How it works</a><a href="#credits">Credits</a></nav>
 <div class="tools"><label class="sw" data-tip="Developer menu: command, logs, stats, file analysis"><input id="devT" type="checkbox"><span></span>Dev</label>
+<label class="sw" data-tip="Lite mode: turns off blur, glow, animations and hover effects for better performance. The spectrum stays but is drawn lighter."><input id="fxT" type="checkbox"><span></span>Lite</label>
 <button id="themeT" class="ico" data-tip="Toggle dark / light" aria-label="Toggle theme">🔆</button></div></header>
 <main>
 <section class="hero"><h1>Any media. <b>Resolve-ready.</b></h1>
@@ -15,6 +16,13 @@
 <div id="drop" class="drop glass" tabindex="0"><input id="file" type="file" accept="video/*,audio/*,.mkv,.mts,.m2ts,.flv,.wmv,.avi,.webm,.mxf,.ts,.flac,.aiff,.opus" multiple hidden>
 <strong>Drag &amp; drop</strong> or click to choose a file<small id="fname">No file selected</small></div>
 </section>
+<section id="dev" class="card glass dev" hidden><h2>Dev menu</h2>
+<code id="cmd">ffmpeg …</code>
+<div class="row"><label>Extra ffmpeg args<input id="extra" placeholder="-threads 1 -metadata title=Demo"></label>
+<label>Log level<select id="ll"><option>quiet</option><option>error</option><option>warning</option><option selected>info</option><option>verbose</option><option>debug</option></select></label></div>
+<div class="row"><button id="analyze" class="btn ghost" disabled data-tip="Runs ffmpeg -i to list streams, codecs, duration">Analyze file</button><button id="copyCmd" class="btn ghost">Copy CLI command</button><button id="copyLog" class="btn ghost">Copy log</button><button id="dlLog" class="btn ghost">Download log</button><button id="clrLog" class="btn ghost">Clear</button></div>
+<div id="stats" class="stats"></div><div id="log" class="log" aria-live="polite"></div>
+<small class="muted">Wasm can't use GPU encoders. For NVENC/VAAPI run the copied CLI command locally.</small></section>
 <section class="grid">
 <div class="card glass"><h2>Workflow preset <span class="tip" tabindex="0" data-tip="Presets fill the menus below with codecs Resolve Free on Linux reads reliably. You can still change every menu.">?</span></h2>
 <div id="presets" class="presets"></div><p id="pdesc" class="muted"></p>
@@ -36,18 +44,12 @@
 <p class="muted" id="info">File info appears after loading a file.</p>
 <div class="qwrap"><div class="qhead"><h3>Queue <span class="tip" tabindex="0" data-tip="Click a file to preview it. Each file has its own rotation. Convert all runs every file with the current menu settings.">?</span></h3>
 <div class="qbar"><button id="add" class="btn ghost">＋ Add files</button><button id="clr" class="btn ghost">Clear</button><button id="all" class="btn" disabled>Convert all</button></div></div><div id="queue" class="queue"></div></div></div></section>
-<section id="dev" class="card glass dev" hidden><h2>Dev menu</h2>
-<code id="cmd">ffmpeg …</code>
-<div class="row"><label>Extra ffmpeg args<input id="extra" placeholder="-threads 1 -metadata title=Demo"></label>
-<label>Log level<select id="ll"><option>quiet</option><option>error</option><option>warning</option><option selected>info</option><option>verbose</option><option>debug</option></select></label></div>
-<div class="row"><button id="analyze" class="btn ghost" disabled data-tip="Runs ffmpeg -i to list streams, codecs, duration">Analyze file</button><button id="copyCmd" class="btn ghost">Copy CLI command</button><button id="copyLog" class="btn ghost">Copy log</button><button id="dlLog" class="btn ghost">Download log</button><button id="clrLog" class="btn ghost">Clear</button></div>
-<div id="stats" class="stats"></div><div id="log" class="log" aria-live="polite"></div>
-<small class="muted">Wasm can't use GPU encoders. For NVENC/VAAPI run the copied CLI command locally.</small></section>
 <section id="features"><h2>Features</h2><div class="feat" id="featList"></div></section>
 <section id="how"><h2>How it works</h2><ol class="steps"><li><b>Drop</b> any media file.</li><li><b>Pick</b> a Resolve workflow preset or tune the menus.</li><li><b>Convert</b> locally with ffmpeg.wasm — no upload.</li><li><b>Import</b> the MOV/MXF/WAV into Resolve.</li></ol></section>
 </main>
 <footer id="credits"><p>Media Resolve · MIT · Not affiliated with Blackmagic Design.</p>
-<p>Credits: <a href="https://github.com/ffmpegwasm/ffmpeg.wasm">ffmpeg.wasm</a> · <a href="https://github.com/FFmpeg/FFmpeg">FFmpeg</a> · <a href="https://github.com/motiondivision/motion">Motion</a> · <a href="https://github.com/sampotts/plyr">Plyr</a> · UI inspo <a href="https://motion.dev">motion.dev</a>, <a href="https://figma.com">Figma</a>, <a href="https://moviplayer.com">moviplayer.com</a></p></footer>
+<p>Credits: <a href="https://github.com/ffmpegwasm/ffmpeg.wasm">ffmpeg.wasm</a> · <a href="https://github.com/FFmpeg/FFmpeg">FFmpeg</a> · <a href="https://github.com/motiondivision/motion">Motion</a> · <a href="https://github.com/sampotts/plyr">Plyr</a> · UI inspo <a href="https://motion.dev">motion.dev</a>, <a href="https://figma.com">Figma</a>, <a href="https://moviplayer.com">moviplayer.com</a></p>
+<p>Spectrum reference: <a href="https://mahaadevan.github.io/moviplayer-skinned/">Cone (moviplayer-skinned)</a> by mahaadevan, a skin over <a href="https://moviplayer.com/">MoviPlayer</a> by <a href="https://github.com/MrUjjwalG">Ujjwal Gupta</a> (<a href="https://github.com/MrUjjwalG/movi-player">movi-player</a>, Apache-2.0)</p></footer>
 <div id="toasts"></div>
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
