@@ -6,7 +6,8 @@ Browser-based converter that turns any media into formats **DaVinci Resolve Free
 |---|---|
 | `index.html` | Page markup |
 | `style.css` | Glass UI, Resolve-gradient theme (dark/light) |
-| `app.js` | Conversion, presets, Dev menu, tooltips |
+| `app.js` | Conversion, presets, queue, Dev menu, tooltips |
+| `logo.png`, `favicon.png` | Logo and tab icon |
 | `.github/workflows/pages.yml` | Pages deploy (Source: GitHub Actions) |
 
 ## Features
@@ -14,10 +15,10 @@ Browser-based converter that turns any media into formats **DaVinci Resolve Free
 |---|---|
 | Any input | Whatever ffmpeg can decode (MKV, MP4, AVI, WebM, MTS…) |
 | Presets | Edit, Color, Proxy, Alpha · YouTube 1080p/4K/Shorts · Reels/TikTok · Instagram 4:5 & 1:1 · X · Facebook · Audio WAV/AIFF/FLAC |
-| Multi-file | Add many files, queue, Convert all |
+| Queue | Under the player: add/remove files, per-file rotation, status, Convert all |
 | Audio | Audio files convert to WAV / AIFF / FLAC with sample-rate and bit-depth menus |
 | Format menus | Video codec (DNxHR LB→444, ProRes Proxy→4444, MJPEG), audio (PCM 16/24), container (MOV/MKV/MXF), canvas (16:9, 9:16, 4:5, 1:1), fit/fill, fps, sample rate, rotate |
-| Frame extraction | PNG/JPG at a chosen time or current player position |
+| Frame extraction | PNG/JPG at a chosen time or player position (instant canvas capture, ffmpeg fallback) |
 | Dev menu | Live/copyable CLI command, extra args, log level, colour-coded log (copy/download/clear), stats, `ffmpeg -i` file analysis, player event log |
 | UX | Drag & drop, progress bar, toasts, error handling, viewport-safe tooltips, blur UI |
 
