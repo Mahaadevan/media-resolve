@@ -24,7 +24,7 @@ fb:P('Facebook','16:9 1920×1080, 30 fps.',{r:'1920:1080',f:'30'}),
 wav:P('Audio · WAV 24-bit','48 kHz PCM — safest audio for Resolve Free on Linux.',{v:'none',a:'pcm24',c:'wav',sr:'48000'}),
 aiff:P('Audio · AIFF','48 kHz PCM, big-endian.',{v:'none',a:'pcm24',c:'aiff',sr:'48000'}),
 flac:P('Audio · FLAC','Lossless, smaller than WAV.',{v:'none',a:'pcm24',c:'flac',sr:'48000'})};
-const FEATS=['Any input format|Everything ffmpeg can read','Platform presets|YouTube, Reels, TikTok, X, Facebook…','Private|Files never leave your browser','Format menus|Codec, audio, container, size, fps','Dev menu|Command, logs, stats, file analysis','Audio spectrum|Circular NCS-style visualizer in the accent colours','Lite mode|One switch turns off blur, glow and animations','Glass UI|Dark / light, Resolve gradient'];
+const FEATS=['Any input format|Everything ffmpeg can read','Platform presets|YouTube, Reels, TikTok, X, Facebook…','Private|Files never leave your browser','Format menus|Codec, audio, container, size, fps','Dev menu|Command, logs, stats, file analysis','Audio spectrum|Simple bar visualizer in the accent colours','Lite mode|One switch turns off blur, glow and animations','Glass UI|Dark / light, Resolve gradient'];
 const fill=(id,o)=>$(id).innerHTML=Object.entries(o).map(([k,v])=>`<option value="${k}">${Array.isArray(v)?v[0]:v}</option>`).join('');
 fill('#vc',VC);fill('#ac',AC);fill('#ct',CT);fill('#res',RES);fill('#fps',FPS);fill('#fit',FIT);fill('#sr',SR);
 $('#featList').innerHTML=FEATS.map(f=>{const[a,b]=f.split('|');return`<div class="glass"><b>${a}</b><br><span class="muted">${b}</span></div>`}).join('');
@@ -108,60 +108,47 @@ try{if(localStorage.lite==='1')html.setAttribute('data-lite','')}catch{}
 A('.drop, .card',{opacity:[0,1],transform:['translateY(24px)','translateY(0px)']},{delay:stagger(.08),duration:.6});stats();
 document.addEventListener('pointerdown',e=>{const b=e.target.closest('.btn,.presets button,.ico');if(!b||b.disabled||lite())return;const r=b.getBoundingClientRect(),s=Math.max(r.width,r.height)*2,p=document.createElement('span');p.className='rip';p.style.cssText=`width:${s}px;height:${s}px;left:${e.clientX-r.left-s/2}px;top:${e.clientY-r.top-s/2}px`;b.append(p);setTimeout(()=>p.remove(),700)});
 
-/* ---------- NCS-style circular audio spectrum (Web Audio + canvas, site accent colours) ---------- */
+/* ---------- Simple audio spectrum: rounded bars in the site's red-to-gold gradient (Web Audio + canvas) ---------- */
 const spec=(()=>{
 const NB=48;
 const cv=document.createElement('canvas');cv.id='spec';cv.hidden=true;cv.setAttribute('aria-hidden','true');const g=cv.getContext('2d');
-const bars=new Float32Array(NB),edges=new Int32Array(NB+1),logo=new Image();logo.src='logo.png';
-let ac,an,node,el,bins,W=0,H=0,dpr=1,NBAR=96,pk=new Float32Array(NBAR),raf=0,last=0,audio=false,playing=false,bass=0,busy=0;
+const bars=new Float32Array(NB),edges=new Int32Array(NB+1);
+let ac,an,node,el,bins,W=0,H=0,dpr=1,raf=0,last=0,audio=false,playing=false,busy=0;
 const host=()=>{const c=plyr.elements&&plyr.elements.container;if(c&&cv.parentNode!==c)c.append(cv)};
-function size(){const r=cv.getBoundingClientRect();W=Math.round(r.width);H=Math.round(r.height);if(!W||!H)return;const L=lite();
-dpr=L?1:Math.min(devicePixelRatio||1,2);NBAR=L?64:96;if(pk.length!==NBAR)pk=new Float32Array(NBAR);cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0)}
+function size(){const r=cv.getBoundingClientRect();W=Math.round(r.width);H=Math.round(r.height);if(!W||!H)return;
+dpr=lite()?1:Math.min(devicePixelRatio||1,2);cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0)}
 function bandEdges(){const lo=2,hi=Math.min(an.frequencyBinCount-1,700),k=Math.pow(hi/lo,1/NB);edges[0]=lo;for(let i=0;i<NB;i++)edges[i+1]=Math.max(edges[i]+1,Math.round(lo*Math.pow(k,i+1)))}
 async function ensure(){if(!audio||!plyr.media)return false;if(el===plyr.media&&node)return true;if(busy)return false;busy=1;
 try{const AC=window.AudioContext||window.webkitAudioContext;ac=ac||new AC();if(ac.state!=='running')await ac.resume();if(ac.state!=='running')return false;
 if(!an){an=ac.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=.55;bins=new Uint8Array(an.frequencyBinCount);an.connect(ac.destination);bandEdges()}
 try{node&&node.disconnect()}catch{}const m=plyr.media;node=ac.createMediaElementSource(m);node.connect(an);el=m;log('spectrum: analyser connected','ok');return true}
 catch(e){log('spectrum: '+errMsg(e),'warn');return false}finally{busy=0}}
-function frame(t){raf=0;if(cv.hidden)return;
+function frame(t){raf=0;if(cv.hidden)return;const L=lite();
+if(L&&t-last<33){raf=requestAnimationFrame(frame);return}/* lite mode: 30 fps cap */
 const dt=Math.min(.1,Math.max(.001,(t-last)/1000));last=t;
 const live=playing&&an&&node&&el===plyr.media;if(live)an.getByteFrequencyData(bins);
-const ak=1-Math.exp(-dt*28),rk=1-Math.exp(-dt*7);let mxv=0,b=0;
+const ak=1-Math.exp(-dt*28),rk=1-Math.exp(-dt*7);let mx=0;
 for(let i=0;i<NB;i++){let v=0;if(live){for(let k=edges[i],e=edges[i+1];k<e;k++)if(bins[k]>v)v=bins[k];v=Math.min(1,Math.pow(v/255,1.3)*(.85+.9*i/NB))}
-bars[i]+=(v-bars[i])*(v>bars[i]?ak:rk);if(bars[i]>mxv)mxv=bars[i];if(i<6)b+=bars[i]}
-bass=b/6;
-const L=lite(),m=Math.min(W,H),X=W/2,Y=H*.46,R=m*.2*(1+bass*.06),maxL=m*.2,TAU=Math.PI*2,lw=Math.max(2,TAU*R/NBAR*.42);
+bars[i]+=(v-bars[i])*(v>bars[i]?ak:rk);if(bars[i]>mx)mx=bars[i]}
 g.clearRect(0,0,W,H);
-/* soft accent halo that breathes with the bass */
-let gr=g.createRadialGradient(X,Y,R*.5,X,Y,R+maxL*1.5);gr.addColorStop(0,`rgba(239,65,54,${(.16+bass*.3).toFixed(3)})`);gr.addColorStop(1,'rgba(239,65,54,0)');g.fillStyle=gr;g.fillRect(0,0,W,H);
-/* radial bars, mirrored left/right, one path + one stroke */
-gr=g.createRadialGradient(X,Y,R,X,Y,R+maxL);gr.addColorStop(0,'#b3202a');gr.addColorStop(.35,'#ef4136');gr.addColorStop(.75,'#ff8a6b');gr.addColorStop(1,'#f7c01d');
-g.lineCap='round';g.lineWidth=lw;g.strokeStyle=gr;if(!L){g.shadowColor='rgba(239,65,54,.85)';g.shadowBlur=14}
-g.beginPath();const pks=[];
-for(let i=0;i<NBAR;i++){const a=(i+.5)/NBAR*TAU,u=a<Math.PI?a:TAU-a,f=u/Math.PI*(NB-1),i0=f|0,i1=i0<NB-1?i0+1:i0,w=f-i0,len=3+(bars[i0]*(1-w)+bars[i1]*w)*maxL,dx=Math.sin(a),dy=Math.cos(a);
-pk[i]=Math.max(len,pk[i]-dt*maxL*.55);const r0=R+lw*.9;g.moveTo(X+dx*r0,Y+dy*r0);g.lineTo(X+dx*(r0+len),Y+dy*(r0+len));pks.push(X+dx*(r0+pk[i]+lw*1.6),Y+dy*(r0+pk[i]+lw*1.6))}
-g.stroke();g.shadowBlur=0;
-/* falling peak dots */
-g.fillStyle='rgba(255,236,200,.85)';g.beginPath();const pr=Math.max(1,lw*.34);for(let i=0;i<pks.length;i+=2){g.moveTo(pks[i]+pr,pks[i+1]);g.arc(pks[i],pks[i+1],pr,0,TAU)}g.fill();
-/* ring + centre disc with the site logo */
-g.lineWidth=2;g.strokeStyle=`rgba(255,255,255,${(.55+bass*.4).toFixed(2)})`;g.beginPath();g.arc(X,Y,R,0,TAU);g.stroke();
-const r1=R*.88*(1+bass*.05);g.save();g.beginPath();g.arc(X,Y,r1,0,TAU);g.clip();
-const dg=g.createRadialGradient(X,Y,0,X,Y,r1);dg.addColorStop(0,'#2a070b');dg.addColorStop(1,'#120508');g.fillStyle=dg;g.fillRect(X-r1,Y-r1,r1*2,r1*2);
-if(logo.complete&&logo.naturalWidth){const s=r1*1.1;g.globalAlpha=.95;g.drawImage(logo,X-s/2,Y-s/2,s,s);g.globalAlpha=1}
-g.restore();g.lineWidth=2;g.strokeStyle='#ef4136';g.beginPath();g.arc(X,Y,r1,0,TAU);g.stroke();
-if(playing||mxv>.004)raf=requestAnimationFrame(frame)}
+const padX=Math.max(14,W*.05),base=H-Math.min(64,H*.2),maxH=Math.max(20,base-H*.14),slot=(W-padX*2)/NB,bw=Math.max(2,slot*.66),rad=bw/2;
+const gr=g.createLinearGradient(0,base,0,base-maxH);gr.addColorStop(0,'#b3202a');gr.addColorStop(.45,'#ef4136');gr.addColorStop(.8,'#ff8a6b');gr.addColorStop(1,'#f7c01d');
+g.fillStyle=gr;if(!L){g.shadowColor='rgba(239,65,54,.55)';g.shadowBlur=12}
+g.beginPath();
+for(let i=0;i<NB;i++){const h=3+bars[i]*maxH,x=padX+i*slot+(slot-bw)/2;g.roundRect?g.roundRect(x,base-h,bw,h,[rad,rad,0,0]):g.rect(x,base-h,bw,h)}
+g.fill();g.shadowBlur=0;
+if(playing||mx>.004)raf=requestAnimationFrame(frame)}
 const kick=()=>{if(!raf&&!cv.hidden){last=performance.now();raf=requestAnimationFrame(frame)}};
 new ResizeObserver(()=>{if(!cv.hidden){size();kick()}}).observe(cv);
-logo.onload=()=>kick();
 return{cv,
-mode(on){audio=on;host();cv.hidden=!on;if(on){size();kick()}else{if(raf)cancelAnimationFrame(raf);raf=0;bars.fill(0);pk.fill(0);playing=false}},
+mode(on){audio=on;host();cv.hidden=!on;if(on){size();kick()}else{if(raf)cancelAnimationFrame(raf);raf=0;bars.fill(0);playing=false}},
 meta(){const m=plyr.media;if(file&&m&&!audio&&m.videoWidth===0&&m.duration>0)this.mode(true)},
 play(p){playing=p;if(!audio)return;if(p){ensure().then(kick);kick()}else kick()},
 refresh(){if(!cv.hidden){size();kick()}}}})();
 plyr.on('loadedmetadata',()=>spec.meta());plyr.on('play',()=>spec.play(true));plyr.on('playing',()=>spec.play(true));plyr.on('pause',()=>spec.play(false));plyr.on('ended',()=>spec.play(false));
 
 /* ---------- Lite mode (disable UI effects) ---------- */
-function glitch(){if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;html.classList.remove('glitch');void html.offsetWidth;html.classList.add('glitch');setTimeout(()=>html.classList.remove('glitch'),460)}
+function glitch(){if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;html.classList.remove('glitch');void html.offsetWidth;html.classList.add('glitch');setTimeout(()=>html.classList.remove('glitch'),700)}
 function setLite(on,save){on?html.setAttribute('data-lite',''):html.removeAttribute('data-lite');$('#fxT').checked=on;if(save){try{localStorage.lite=on?'1':'0'}catch{}toast(on?'Lite mode on — effects disabled':'Effects enabled')}spec.refresh();if(save)glitch()}
 $('#fxT').onchange=e=>setLite(e.target.checked,true);
 try{if(localStorage.lite==='1')setLite(true)}catch{}
@@ -194,7 +181,7 @@ else if(e.key==='Enter'||e.key===' '){pick(act);e.preventDefault()}else if(e.key
 const s=e.target;if(fine.matches&&s.tagName==='SELECT'&&(e.key==='Enter'||e.key===' '||(e.altKey&&e.key==='ArrowDown'))){e.preventDefault();open(s)}},true);
 addEventListener('scroll',e=>{if(!menu.contains(e.target))close()},true);addEventListener('resize',close);addEventListener('blur',close)})();
 
-/* ---------- Text-generation intro: words stream in top to bottom with a caret ---------- */
+/* ---------- Text-generation intro: words stream in top to bottom ---------- */
 function genText(){const done=()=>html.classList.remove('gen');
 if(lite()||matchMedia('(prefers-reduced-motion:reduce)').matches)return done();
 try{const tw=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;const p=n.parentElement;
@@ -206,10 +193,7 @@ for(const s of parts){if(!s)continue;if(!one&&/^\s+$/.test(s)){fr.append(s);cont
 document.querySelectorAll('h1 b').forEach(b=>{b.classList.add('gw0');units.push(b)});
 const R=units.map(u=>{const r=u.getBoundingClientRect();return{u,x:r.right+scrollX,y:r.top+scrollY,h:r.height,k:Math.round((r.top+scrollY+r.height/2)/14)}}).filter(o=>o.h>0).sort((a,b)=>a.k-b.k||a.x-b.x);
 if(!R.length)return done();
-const step=Math.min(.022,3/R.length),d0=.1;R.forEach((o,i)=>{o.u.style.animationDelay=(d0+i*step).toFixed(3)+'s';o.u.classList.replace('gw0','gw')});done();
-const c=document.createElement('span');c.id='caret';c.innerHTML='&gt;<i>_</i>';document.body.append(c);const t0=performance.now(),end=d0+R.length*step;let gone=false;
-const tick=t=>{const s=(t-t0)/1000,k=Math.floor((s-d0)/step);if(k>=0&&!gone){const o=R[Math.min(R.length-1,k)],fs=Math.max(12,Math.min(30,o.h*.9));c.style.fontSize=fs+'px';c.style.transform=`translate(${o.x-scrollX+4}px,${o.y-scrollY+(o.h-fs)/2}px)`;c.style.opacity=1}
-if(s<end+.15)requestAnimationFrame(tick);else{gone=true;c.style.transition='opacity .4s,filter .4s';c.style.opacity=0;c.style.filter='blur(6px)';setTimeout(()=>c.remove(),450)}};requestAnimationFrame(tick);
+const step=Math.min(.022,3/R.length),d0=.1,end=d0+R.length*step;R.forEach((o,i)=>{o.u.style.animationDelay=(d0+i*step).toFixed(3)+'s';o.u.classList.replace('gw0','gw')});done();
 setTimeout(()=>R.forEach(o=>{o.u.classList.remove('gw');o.u.style.animationDelay='';if(o.u.tagName==='SPAN'&&o.u.parentNode&&o.u.firstChild)o.u.replaceWith(o.u.firstChild)}),(end+.9)*1000)}
 catch(e){done();log('intro: '+errMsg(e),'warn')}}
 genText();
