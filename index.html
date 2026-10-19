@@ -3,8 +3,9 @@
 <title>Media Resolve – Convert any media for DaVinci Resolve (Linux Free)</title>
 <meta name="description" content="Convert any video/audio to DaVinci Resolve Linux-free friendly formats (DNxHR, ProRes, WAV) in your browser.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
+<link rel="icon" type="image/png" href="favicon.png"><link rel="apple-touch-icon" href="logo.png">
 <link rel="stylesheet" href="style.css"></head><body>
-<header class="nav"><a class="logo" href="#"><i></i>Media Resolve</a>
+<header class="nav"><a class="logo" href="#"><img src="logo.png" alt="" width="28" height="28">Media Resolve</a>
 <nav><a href="#features">Features</a><a href="#how">How it works</a><a href="#credits">Credits</a></nav>
 <div class="tools"><label class="sw" data-tip="Developer menu: command, logs, stats, file analysis"><input id="devT" type="checkbox"><span></span>Dev</label>
 <button id="themeT" class="ico" data-tip="Toggle dark / light" aria-label="Toggle theme">◐</button></div></header>
@@ -13,7 +14,7 @@
 <p class="muted">DaVinci Resolve Free on Linux can't import many codecs (H.264/H.265/AAC…). Drop anything here — conversion runs 100% in your browser.</p>
 <div id="drop" class="drop glass" tabindex="0"><input id="file" type="file" accept="video/*,audio/*,.mkv,.mts,.m2ts,.flv,.wmv,.avi,.webm,.mxf,.ts,.flac,.aiff,.opus" multiple hidden>
 <strong>Drag &amp; drop</strong> or click to choose a file<small id="fname">No file selected</small></div>
-<div class="qbar"><button id="add" class="btn ghost">＋ Add files</button><button id="all" class="btn ghost" hidden disabled>Convert all</button></div><div id="queue" class="queue"></div></section>
+</section>
 <section class="grid">
 <div class="card glass"><h2>Workflow preset <span class="tip" tabindex="0" data-tip="Presets fill the menus below with codecs Resolve Free on Linux reads reliably. You can still change every menu.">?</span></h2>
 <div id="presets" class="presets"></div><p id="pdesc" class="muted"></p>
@@ -24,7 +25,6 @@
 <label data-tip="Output frame size. Platform presets pick the recommended one.">Canvas<select id="res"></select></label>
 <label data-tip="Fit = letterbox, Fill = crop to cover the canvas.">Fit<select id="fit"></select></label>
 <label data-tip="Resample frame rate.">Frame rate<select id="fps"></select></label>
-<label data-tip="Fix sideways phone footage.">Rotate<select id="rot"></select></label>
 <label data-tip="Audio sample rate. Resolve timelines are usually 48 kHz.">Sample rate<select id="sr"></select></label></div>
 <div class="row"><button id="go" class="btn" disabled>Convert</button></div>
 <h3>Frame extraction</h3>
@@ -34,6 +34,8 @@
 <div class="bar" hidden><div id="pb"></div><span id="pt">0%</span></div><div id="out"></div></div>
 <div class="card glass"><h2>Player <span class="tip" tabindex="0" data-tip="Previews the source with the Plyr API. Some codecs can't play in a browser; conversion still works.">?</span></h2><video id="player" playsinline controls></video>
 <p class="muted" id="info">File info appears after loading a file.</p></div></section>
+<section class="card glass qcard"><div class="qhead"><h2>Queue <span class="tip" tabindex="0" data-tip="Click a file to preview it. Each file has its own rotation. Convert all runs every file with the current menu settings.">?</span></h2>
+<div class="qbar"><button id="add" class="btn ghost">＋ Add files</button><button id="clr" class="btn ghost">Clear</button><button id="all" class="btn" disabled>Convert all</button></div></div><div id="queue" class="queue"></div></section>
 <section id="dev" class="card glass dev" hidden><h2>Dev menu</h2>
 <code id="cmd">ffmpeg …</code>
 <div class="row"><label>Extra ffmpeg args<input id="extra" placeholder="-threads 1 -metadata title=Demo"></label>
