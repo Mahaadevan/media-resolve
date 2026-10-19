@@ -5,16 +5,27 @@ const dnx=(p,px)=>['-c:v','dnxhd','-profile:v',p,'-pix_fmt',px];
 const VC={dnx_lb:['DNxHR LB (proxy)',dnx('dnxhr_lb','yuv422p')],dnx_sq:['DNxHR SQ',dnx('dnxhr_sq','yuv422p')],dnx_hq:['DNxHR HQ (8-bit)',dnx('dnxhr_hq','yuv422p')],dnx_hqx:['DNxHR HQX (10-bit)',dnx('dnxhr_hqx','yuv422p10le')],dnx_444:['DNxHR 444 (10-bit)',dnx('dnxhr_444','yuv444p10le')],
 pr_proxy:['ProRes Proxy',prof('0','yuv422p10le')],pr_lt:['ProRes LT',prof('1','yuv422p10le')],pr_422:['ProRes 422',prof('2','yuv422p10le')],pr_hq:['ProRes 422 HQ',prof('3','yuv422p10le')],pr_4444:['ProRes 4444 (alpha)',prof('4','yuva444p10le')],mjpeg:['MJPEG (high quality)',['-c:v','mjpeg','-q:v','2','-pix_fmt','yuvj422p']],none:['No video (audio only)',[]]};
 const AC={pcm16:['PCM 16-bit',['-c:a','pcm_s16le']],pcm24:['PCM 24-bit',['-c:a','pcm_s24le']],none:['No audio',['-an']]};
-const CT={mov:'MOV',mkv:'MKV',mxf:'MXF'},RES={'':'Source','2160':'2160p','1440':'1440p','1080':'1080p','720':'720p','480':'480p'},FPS={'':'Source','24':'24','25':'25','30':'30','50':'50','60':'60'};
+const CT={mov:'MOV',mkv:'MKV',mxf:'MXF'},RES={'':'Source','3840:2160':'4K UHD 16:9','2560:1440':'1440p 16:9','1920:1080':'1080p 16:9','1280:720':'720p 16:9','1080:1920':'1080×1920 9:16','1080:1350':'1080×1350 4:5','1080:1080':'1080×1080 1:1','720:1280':'720×1280 9:16'},CTA={wav:'WAV',aiff:'AIFF',flac:'FLAC'},FIT={pad:'Fit (letterbox)',crop:'Fill (crop)'},SR={'':'Source','44100':'44.1 kHz','48000':'48 kHz','96000':'96 kHz'},FPS={'':'Source','24':'24','25':'25','30':'30','50':'50','60':'60'};
 const ROT={'':'None','transpose=1':'90° CW','transpose=2':'90° CCW','transpose=1,transpose=1':'180°'};
-const PRESETS={edit:{n:'Edit · DNxHR HQ',d:'Intra-frame, fast scrubbing. Best general codec for Resolve Free on Linux.',v:'dnx_hq',a:'pcm16',c:'mov',r:''},
-color:{n:'Color · ProRes 422 HQ',d:'10-bit 4:2:2 for grading. Larger files.',v:'pr_hq',a:'pcm24',c:'mov',r:''},
-proxy:{n:'Proxy · 720p',d:'Tiny, light files for weak PCs.',v:'dnx_lb',a:'pcm16',c:'mov',r:'720'},
-alpha:{n:'Alpha · ProRes 4444',d:'Keeps transparency.',v:'pr_4444',a:'pcm24',c:'mov',r:''},
-audio:{n:'Audio · WAV',d:'Extracts PCM audio (no AAC on Resolve Free Linux).',v:'none',a:'pcm16',c:'mov',r:''}};
-const FEATS=['Any input format|Everything ffmpeg can read','Resolve presets|Edit, Color, Proxy, Alpha, Audio','Private|Files never leave your browser','Format menus|Codec, audio, container, size, fps','Dev menu|Command, logs, stats, file analysis','Glass UI|Dark / light, Resolve gradient'];
+const P=(n,d,o)=>({n,d,v:'dnx_hq',a:'pcm16',c:'mov',r:'',f:'',fit:'pad',sr:'',...o});
+const PRESETS={edit:P('Edit · DNxHR HQ','Intra-frame, fast scrubbing. Best general codec for Resolve Free on Linux.',{}),
+color:P('Color · ProRes 422 HQ','10-bit 4:2:2 for grading. Larger files.',{v:'pr_hq',a:'pcm24'}),
+proxy:P('Proxy · 720p','Tiny, light files for weak PCs.',{v:'dnx_lb',r:'1280:720'}),
+alpha:P('Alpha · ProRes 4444','Keeps transparency.',{v:'pr_4444',a:'pcm24'}),
+yt:P('YouTube 1080p','Platform size 16:9 1920×1080, source fps (YouTube accepts 24–60). Resolve-safe DNxHR HQ + PCM.',{r:'1920:1080'}),
+yt4k:P('YouTube 4K','16:9 3840×2160, source fps. Heavy files.',{r:'3840:2160'}),
+shorts:P('YT Shorts','9:16 1080×1920, 30 fps, cropped to fill.',{r:'1080:1920',f:'30',fit:'crop'}),
+reels:P('Reels / TikTok','9:16 1080×1920, 30 fps, cropped to fill.',{r:'1080:1920',f:'30',fit:'crop'}),
+igfeed:P('Instagram 4:5','Portrait feed 1080×1350, 30 fps.',{r:'1080:1350',f:'30',fit:'crop'}),
+square:P('Square 1:1','1080×1080, 30 fps (Instagram / Facebook).',{r:'1080:1080',f:'30',fit:'crop'}),
+x:P('X / Twitter','16:9 1280×720, 30 fps.',{r:'1280:720',f:'30'}),
+fb:P('Facebook','16:9 1920×1080, 30 fps.',{r:'1920:1080',f:'30'}),
+wav:P('Audio · WAV 24-bit','48 kHz PCM — safest audio for Resolve Free on Linux.',{v:'none',a:'pcm24',c:'wav',sr:'48000'}),
+aiff:P('Audio · AIFF','48 kHz PCM, big-endian.',{v:'none',a:'pcm24',c:'aiff',sr:'48000'}),
+flac:P('Audio · FLAC','Lossless, smaller than WAV.',{v:'none',a:'pcm24',c:'flac',sr:'48000'})};
+const FEATS=['Any input format|Everything ffmpeg can read','Platform presets|YouTube, Reels, TikTok, X, Facebook…','Private|Files never leave your browser','Format menus|Codec, audio, container, size, fps','Dev menu|Command, logs, stats, file analysis','Glass UI|Dark / light, Resolve gradient'];
 const fill=(id,o)=>$(id).innerHTML=Object.entries(o).map(([k,v])=>`<option value="${k}">${Array.isArray(v)?v[0]:v}</option>`).join('');
-fill('#vc',VC);fill('#ac',AC);fill('#ct',CT);fill('#res',RES);fill('#fps',FPS);fill('#rot',ROT);
+fill('#vc',VC);fill('#ac',AC);fill('#ct',CT);fill('#res',RES);fill('#fps',FPS);fill('#rot',ROT);fill('#fit',FIT);fill('#sr',SR);
 $('#featList').innerHTML=FEATS.map(f=>{const[a,b]=f.split('|');return`<div class="glass"><b>${a}</b><br><span class="muted">${b}</span></div>`}).join('');
 let ff,file,loaded=false,busy=false,url,lines=[],t0=0,inSize=0,outSize=0,elapsed=0,cap=null;const plyr=new Plyr('#player');
 const errMsg=e=>e instanceof Error?e.message:typeof e==='string'?e:(e&&e.message)||(()=>{try{return JSON.stringify(e)}catch{return''}})()||'Unknown error';
@@ -26,33 +37,46 @@ async function reset(){try{ff.terminate()}catch{}loaded=false;mk();stats()}
 async function load(){if(loaded)return;toast('Loading engine (~30 MB, cached after)…');log('Loading ffmpeg core 0.12.6','ok');const b=CDN+'@ffmpeg/core@0.12.6/dist/umd/';
 await ff.load({coreURL:await toBlobURL(b+'ffmpeg-core.js','text/javascript'),wasmURL:await toBlobURL(b+'ffmpeg-core.wasm','application/wasm'),classWorkerURL:await toBlobURL(CDN+'@ffmpeg/ffmpeg@0.12.10/dist/umd/814.ffmpeg.js','text/javascript')});loaded=true;log('Engine ready','ok');stats()}
 const IN=()=>{const x=(file.name.split('.').pop()||'').toLowerCase();return'in.'+(/^[a-z0-9]{1,5}$/.test(x)?x:'bin')};
-function build(cli){const v=$('#vc').value,a=$('#ac').value,r=$('#res').value,f=$('#fps').value,rot=$('#rot').value,noV=v==='none';
-const ext=noV?'wav':$('#ct').value,vf=[rot,r&&`scale=-2:${r}`,f&&`fps=${f}`].filter(Boolean).join(','),ex=$('#extra').value.trim().split(/\s+/).filter(Boolean);
+const AUD={wav:{pcm16:'pcm_s16le',pcm24:'pcm_s24le'},aiff:{pcm16:'pcm_s16be',pcm24:'pcm_s24be'}};
+function setCT(noV){const s=$('#ct'),k=noV?'a':'v';if(s.dataset.k===k)return;const cur=s.value;fill('#ct',noV?CTA:CT);s.dataset.k=k;if([...s.options].some(o=>o.value===cur))s.value=cur}
+function build(cli){const v=$('#vc').value,a=$('#ac').value,r=$('#res').value,f=$('#fps').value,rot=$('#rot').value,fit=$('#fit').value,sr=$('#sr').value,noV=v==='none',ct=$('#ct').value;
+const ext=noV?(CTA[ct]?ct:'wav'):ct,ex=$('#extra').value.trim().split(/\s+/).filter(Boolean);
+let sc='';if(r){const[w,h]=r.split(':');sc=fit==='crop'?`scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},setsar=1`:`scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2,setsar=1`}
+const vf=[rot,sc,f&&`fps=${f}`].filter(Boolean).join(','),bd=a==='pcm24'?'pcm24':'pcm16';
+const aud=noV?(ext==='flac'?['-c:a','flac',...(bd==='pcm24'?['-sample_fmt','s32']:[])]:['-c:a',AUD[ext][bd]]):AC[a][1];
 const inp=cli&&file?`"${file.name}"`:file?IN():'input',out=cli&&file?`"${file.name.replace(/\.[^.]+$/,'')}_resolve.${ext}"`:'out.'+ext;
-return{ext,out:'out.'+ext,args:['-hide_banner','-loglevel',$('#ll').value,'-i',inp,...(noV?['-vn']:[...(vf?['-vf',vf]:[]),...VC[v][1]]),...(noV&&a==='none'?[]:AC[a][1]),...ex,...(cli?[out]:['out.'+ext])]}}
-function refresh(){const noV=$('#vc').value==='none';$('#ct').disabled=noV;$('#cmd').textContent='ffmpeg '+build(true).args.join(' ');$('#go').textContent='Convert → '+(noV?'WAV':$('#ct').value.toUpperCase())}
+return{ext,out:'out.'+ext,args:['-hide_banner','-loglevel',$('#ll').value,'-i',inp,...(noV?['-vn']:[...(vf?['-vf',cli?`"${vf}"`:vf]:[]),...VC[v][1]]),...aud,...(sr?['-ar',sr]:[]),...ex,...(cli?[out]:['out.'+ext])]}}
+function refresh(){setCT($('#vc').value==='none');$('#cmd').textContent='ffmpeg '+build(true).args.join(' ');$('#go').textContent='Convert → '+build(false).ext.toUpperCase()}
 $('#presets').innerHTML=Object.entries(PRESETS).map(([k,p])=>`<button data-k="${k}">${p.n}</button>`).join('');
-$('#presets').onclick=e=>{const k=e.target.dataset.k;if(!k)return;const p=PRESETS[k];document.querySelectorAll('#presets button').forEach(b=>b.classList.toggle('on',b===e.target));$('#pdesc').textContent=p.d;$('#vc').value=p.v;$('#ac').value=p.a;$('#ct').value=p.c;$('#res').value=p.r;$('#fps').value='';refresh()};
-$('#presets button').click();['vc','ac','ct','res','fps','rot','extra','ll'].forEach(i=>$('#'+i).addEventListener('input',()=>{if(['vc','ac','ct','res','fps'].includes(i))document.querySelectorAll('#presets button').forEach(b=>b.classList.remove('on'));refresh()}));
-function pick(f){if(!f)return;if(!/^(video|audio)\//.test(f.type)&&!/\.(mkv|mts|m2ts|flv|wmv|avi|ts|mxf|3gp|mov|mp4|webm|m4a|mp3|wav|flac|ogg)$/i.test(f.name))return toast('Unsupported file type',1);
-file=f;inSize=f.size;outSize=0;elapsed=0;$('#fname').textContent=f.name;$('#go').disabled=$('#frame').disabled=$('#analyze').disabled=false;if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(f);
-plyr.source={type:'video',sources:[{src:url,type:f.type||'video/mp4'}]};$('#info').textContent=`${f.name}\n${(f.size/1048576).toFixed(1)} MB · ${f.type||'unknown type'}`;log(`Loaded ${f.name} (${f.size} bytes, ${f.type||'?'})`,'ok');refresh();stats();toast('File ready')}
-const d=$('#drop');d.onclick=()=>$('#file').click();d.onkeydown=e=>{if(e.key==='Enter')$('#file').click()};$('#file').onchange=e=>pick(e.target.files[0]);
+$('#presets').onclick=e=>{const k=e.target.dataset.k;if(!k)return;const p=PRESETS[k];document.querySelectorAll('#presets button').forEach(b=>b.classList.toggle('on',b===e.target));$('#pdesc').textContent=p.d;$('#vc').value=p.v;setCT(p.v==='none');$('#ac').value=p.a;$('#ct').value=p.c;$('#res').value=p.r;$('#fps').value=p.f;$('#fit').value=p.fit;$('#sr').value=p.sr;refresh()};
+$('#presets button').click();['vc','ac','ct','res','fps','rot','fit','sr','extra','ll'].forEach(i=>$('#'+i).addEventListener('input',()=>{if(['vc','ac','ct','res','fps','fit','sr'].includes(i))document.querySelectorAll('#presets button').forEach(b=>b.classList.remove('on'));refresh()}));
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let files=[],sel=-1;const OKX=/\.(mkv|mts|m2ts|flv|wmv|avi|ts|mxf|3gp|mov|mp4|webm|m4a|mp3|wav|flac|ogg|aac|aif|aiff|opus)$/i,isAud=f=>/^audio\//.test(f.type)||/\.(m4a|mp3|wav|flac|ogg|aac|aif|aiff|opus)$/i.test(f.name);
+const upd=()=>['#go','#frame','#analyze','#all'].forEach(s=>$(s).disabled=busy||!file);
+function render(){$('#queue').innerHTML=files.map((f,i)=>`<div class="q${i===sel?' on':''}" data-i="${i}"><span>${esc(f.name)}</span><small>${(f.size/1048576).toFixed(1)} MB</small><b data-x="${i}" title="Remove">×</b></div>`).join('');$('#all').hidden=files.length<2}
+function choose(i){sel=i;file=files[i];render();if(!file){$('#fname').textContent='No file selected';$('#info').textContent='File info appears after loading a file.';try{plyr.stop()}catch{}upd();refresh();return}
+inSize=file.size;outSize=0;elapsed=0;$('#fname').textContent=files.length>1?`${files.length} files queued`:file.name;if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);
+plyr.source={type:'video',sources:[{src:url,type:file.type||'video/mp4'}]};$('#info').textContent=`${file.name}\n${(file.size/1048576).toFixed(1)} MB · ${file.type||'unknown type'}`;log(`Selected ${file.name} (${file.size} bytes, ${file.type||'?'})`,'ok');
+if(isAud(file)&&$('#vc').value!=='none')$('#presets [data-k=wav]').click();upd();refresh();stats()}
+function addFiles(l){let n=0;for(const f of l){if(!/^(video|audio)\//.test(f.type)&&!OKX.test(f.name)){toast('Skipped '+f.name,1);continue}files.push(f);n++}if(!n)return;toast(n+' file'+(n>1?'s':'')+' added');sel<0?choose(files.length-n):render()}
+$('#queue').onclick=e=>{if(busy)return;const x=e.target.dataset.x;if(x!==undefined){files.splice(+x,1);choose(files.length?Math.min(sel>+x?sel-1:sel,files.length-1):-1)}else{const q=e.target.closest('[data-i]');q&&choose(+q.dataset.i)}};
+$('#add').onclick=()=>$('#file').click();$('#all').onclick=async()=>{if(busy)return;for(let i=0;i<files.length;i++){choose(i);await $('#go').onclick()}};
+const d=$('#drop');d.onclick=()=>$('#file').click();d.onkeydown=e=>{if(e.key==='Enter')$('#file').click()};$('#file').onchange=e=>{addFiles(e.target.files);e.target.value=''};
 ['dragover','dragenter'].forEach(v=>d.addEventListener(v,e=>{e.preventDefault();d.classList.add('on')}));
-['dragleave','drop'].forEach(v=>d.addEventListener(v,e=>{e.preventDefault();d.classList.remove('on')}));d.ondrop=e=>pick(e.dataTransfer.files[0]);
+['dragleave','drop'].forEach(v=>d.addEventListener(v,e=>{e.preventDefault();d.classList.remove('on')}));d.ondrop=e=>addFiles(e.dataTransfer.files);
 ['loadedmetadata','play','pause','seeked','ended'].forEach(ev=>plyr.on(ev,()=>log(`player:${ev} t=${plyr.currentTime.toFixed(2)} dur=${(plyr.duration||0).toFixed(2)}`,'pl')));
 plyr.on('error',()=>{log('player: browser cannot decode this source (conversion still works)','warn');toast('Browser can’t preview this codec — conversion still works',1)});
-const btns=['#go','#frame','#analyze'];const setBusy=b=>{busy=b;btns.forEach(s=>$(s).disabled=b||!file)};
+const btns=['#go','#frame','#analyze','#all'];const setBusy=b=>{busy=b;btns.forEach(s=>$(s).disabled=b||!file)};
 async function run(args,out,mime,name,after){if(!file)return toast('Choose a file first',1);if(busy)return;setBusy(true);$('.bar').hidden=false;$('#pb').style.width='0';$('#pt').textContent='0%';t0=performance.now();
 log('ffmpeg '+args.join(' '),'ok');
 try{await load();await ff.writeFile(IN(),await fetchFile(file));const code=await ff.exec(args);if(code!==0)throw new Error(`ffmpeg exited with code ${code} — see Dev ▸ log`);
 let data;try{data=await ff.readFile(out)}catch{throw new Error('No output file was produced — see Dev ▸ log')}if(!data||!data.length)throw new Error('Output is empty — encoder may be missing in this wasm build');
-const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([data],{type:mime}));l.download=name;l.className='btn';l.textContent='Download '+name;$('#out').replaceChildren(l);animate(l,{opacity:[0,1],y:[12,0]});
+const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([data],{type:mime}));l.download=name;l.className='btn';l.textContent='Download '+name;$('#out').append(l);animate(l,{opacity:[0,1],y:[12,0]});
 outSize=data.length;elapsed=performance.now()-t0;$('#pb').style.width='100%';$('#pt').textContent='100%';log(`Done in ${(elapsed/1000).toFixed(1)} s → ${name} (${outSize} bytes)`,'ok');toast('Done ✔')}
 catch(e){const m=errMsg(e);log('ERROR: '+m,'err');toast('Failed: '+m+(/memory|abort|out of bounds/i.test(m)?' (file may be too large for wasm)':''),1);await reset()}
 finally{try{await ff.deleteFile(IN())}catch{}try{await ff.deleteFile(out)}catch{}setBusy(false);stats()}}
 $('#go').onclick=()=>{const b=build(false),base=file.name.replace(/\.[^.]+$/,'');if($('#vc').value==='none'&&$('#ac').value==='none')return toast('Audio-only needs an audio codec',1);
-run(b.args,b.out,b.ext==='wav'?'audio/wav':'video/quicktime',`${base}_resolve.${b.ext}`)};
+return run(b.args,b.out,({wav:'audio/wav',aiff:'audio/aiff',flac:'audio/flac'})[b.ext]||'video/quicktime',`${base}_resolve.${b.ext}`)};
 $('#frame').onclick=()=>{const img=$('#fimg').value,raw=$('#ft').value,t=raw===''?(plyr.currentTime||0):parseFloat(raw);if(!isFinite(t)||t<0)return toast('Invalid time',1);
 const rot=$('#rot').value,out='frame.'+img;run(['-hide_banner','-loglevel',$('#ll').value,'-ss',t.toFixed(3),'-i',IN(),...(rot?['-vf',rot]:[]),'-frames:v','1',...(img==='jpg'?['-q:v','2']:[]),out],out,img==='png'?'image/png':'image/jpeg',`${file.name.replace(/\.[^.]+$/,'')}_${t.toFixed(2)}s.${img}`)};
 $('#analyze').onclick=async()=>{if(busy||!file)return;setBusy(true);cap=[];try{await load();await ff.writeFile(IN(),await fetchFile(file));await ff.exec(['-hide_banner','-i',IN()]);
