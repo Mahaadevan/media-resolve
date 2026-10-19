@@ -11,18 +11,21 @@
 <main>
 <section class="hero"><h1>Any media. <b>Resolve-ready.</b></h1>
 <p class="muted">DaVinci Resolve Free on Linux can't import many codecs (H.264/H.265/AAC…). Drop anything here — conversion runs 100% in your browser.</p>
-<div id="drop" class="drop glass" tabindex="0"><input id="file" type="file" accept="video/*,audio/*,.mkv,.mts,.m2ts,.flv,.wmv,.avi,.webm,.mxf,.ts" hidden>
-<strong>Drag &amp; drop</strong> or click to choose a file<small id="fname">No file selected</small></div></section>
+<div id="drop" class="drop glass" tabindex="0"><input id="file" type="file" accept="video/*,audio/*,.mkv,.mts,.m2ts,.flv,.wmv,.avi,.webm,.mxf,.ts,.flac,.aiff,.opus" multiple hidden>
+<strong>Drag &amp; drop</strong> or click to choose a file<small id="fname">No file selected</small></div>
+<div class="qbar"><button id="add" class="btn ghost">＋ Add files</button><button id="all" class="btn ghost" hidden disabled>Convert all</button></div><div id="queue" class="queue"></div></section>
 <section class="grid">
 <div class="card glass"><h2>Workflow preset <span class="tip" tabindex="0" data-tip="Presets fill the menus below with codecs Resolve Free on Linux reads reliably. You can still change every menu.">?</span></h2>
 <div id="presets" class="presets"></div><p id="pdesc" class="muted"></p>
 <div class="fields">
 <label data-tip="Video codec/profile. DNxHR = fast editing, ProRes = grading/alpha.">Video codec<select id="vc"></select></label>
 <label data-tip="PCM is the only audio Resolve Free on Linux imports reliably.">Audio<select id="ac"></select></label>
-<label data-tip="Wrapper file. Audio-only forces WAV.">Container<select id="ct"></select></label>
-<label data-tip="Downscale to this height (aspect kept).">Resolution<select id="res"></select></label>
+<label data-tip="Wrapper file. Audio-only offers WAV / AIFF / FLAC.">Container<select id="ct"></select></label>
+<label data-tip="Output frame size. Platform presets pick the recommended one.">Canvas<select id="res"></select></label>
+<label data-tip="Fit = letterbox, Fill = crop to cover the canvas.">Fit<select id="fit"></select></label>
 <label data-tip="Resample frame rate.">Frame rate<select id="fps"></select></label>
-<label data-tip="Fix sideways phone footage.">Rotate<select id="rot"></select></label></div>
+<label data-tip="Fix sideways phone footage.">Rotate<select id="rot"></select></label>
+<label data-tip="Audio sample rate. Resolve timelines are usually 48 kHz.">Sample rate<select id="sr"></select></label></div>
 <div class="row"><button id="go" class="btn" disabled>Convert</button></div>
 <h3>Frame extraction</h3>
 <div class="row"><label data-tip="Seconds. Empty = current player position.">Time (s)<input id="ft" type="number" min="0" step="0.001" placeholder="player time"></label>
