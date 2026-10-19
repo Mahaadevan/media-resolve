@@ -22,7 +22,7 @@ Browser-based converter that turns any media into formats **DaVinci Resolve Free
 | Dev menu | Sits above the presets and player. Live/copyable CLI command, extra args, log level, colour-coded log (copy/download/clear), stats, `ffmpeg -i` file analysis, player event log |
 | Audio spectrum | While audio plays, the player shows an NCS-style circular ASCII spectrum (Web Audio `AnalyserNode` + canvas, frame-rate independent) |
 | Lite mode | Switch beside **Dev**: turns off blur, glow, animations and hover effects; the spectrum is drawn lighter and capped at 30 fps. Remembered between visits |
-| UX | Drag & drop, progress bar, toasts, error handling, viewport-safe tooltips, blur UI, animations on the compositor (run at your display's refresh rate), instant mouse glow |
+| UX | Drag & drop, progress bar, toasts, error handling, viewport-safe tooltips, blur UI, animations on the compositor (run at your display's refresh rate), softly trailing mouse glow, blur/fade toasts, themed dropdown menus (desktop), text-generation style intro, subtle glitch when Lite mode is toggled |
 
 ## Run / Deploy
 ```bash
