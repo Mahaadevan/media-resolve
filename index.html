@@ -3,7 +3,7 @@
 <title>Media Resolve – Convert any media for DaVinci Resolve (Linux Free)</title>
 <meta name="description" content="Convert any video/audio to DaVinci Resolve Linux-free friendly formats (DNxHR, ProRes, WAV) in your browser.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
-<link rel="icon" type="image/png" href="logo.png"><link rel="apple-touch-icon" href="logo.png">
+<link rel="icon" type="image/png" href="favicon.png"><link rel="apple-touch-icon" href="logo.png">
 <link rel="stylesheet" href="style.css"></head><body>
 <header class="nav"><a class="logo" href="#"><img src="logo.png" alt="" width="28" height="28">Media Resolve</a>
 <nav><a href="#features">Features</a><a href="#how">How it works</a><a href="#credits">Credits</a></nav>
@@ -32,7 +32,7 @@
 <label>Image<select id="fimg"><option value="png">PNG</option><option value="jpg">JPG</option></select></label>
 <button id="frame" class="btn ghost" disabled>Extract frame</button></div>
 <div class="bar" hidden><div id="pb"></div><span id="pt">0%</span></div><div id="out"></div></div>
-<div class="card glass"><h2>Player <span class="tip" tabindex="0" data-tip="Previews the source with the Plyr API. Some codecs can't play in a browser; conversion still works.">?</span></h2><video id="player" playsinline controls></video>
+<div class="card glass player"><h2>Player <span class="tip" tabindex="0" data-tip="Previews the source with the Plyr API. Some codecs can't play in a browser; conversion still works.">?</span></h2><video id="player" playsinline controls></video>
 <p class="muted" id="info">File info appears after loading a file.</p>
 <div class="qwrap"><div class="qhead"><h3>Queue <span class="tip" tabindex="0" data-tip="Click a file to preview it. Each file has its own rotation. Convert all runs every file with the current menu settings.">?</span></h3>
 <div class="qbar"><button id="add" class="btn ghost">＋ Add files</button><button id="clr" class="btn ghost">Clear</button><button id="all" class="btn" disabled>Convert all</button></div></div><div id="queue" class="queue"></div></div></div></section>
