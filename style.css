@@ -135,5 +135,8 @@ html.gen .nav>*,html.gen main,html.gen footer{visibility:hidden}
 @keyframes gen{from{opacity:0;filter:blur(6px)}to{opacity:1;filter:blur(0)}}
 
 /* Examples */
-.feat .ex{display:grid;gap:8px;align-content:start;justify-items:start;text-align:left}.ex .btn{margin-top:4px}
+.feat .ex{display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left}
+.ex>:nth-last-child(2){margin-bottom:10px}.ex>.btn{margin-top:auto;align-self:flex-start;flex:none}
+.ex>.btn:not(:disabled):hover{transform:translateY(-1px)}.ex>.btn:disabled{pointer-events:none}
 html{scroll-padding-top:72px}
+#examples>p{margin:0 0 18px}
