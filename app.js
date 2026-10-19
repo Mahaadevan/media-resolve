@@ -151,7 +151,7 @@ if(playing||mx>.004)raf=requestAnimationFrame(frame)}
 const kick=()=>{if(!raf&&!cv.hidden){last=performance.now();raf=requestAnimationFrame(frame)}};
 new ResizeObserver(()=>{if(!cv.hidden){size();kick()}}).observe(cv);
 return{cv,
-mode(on){audio=on;host();cv.hidden=!on;if(on){size();kick()}else{if(raf)cancelAnimationFrame(raf);raf=0;bars.fill(0);playing=false}},
+mode(on){audio=on;host();try{plyr.config.hideControls=!on;if(on)plyr.toggleControls(true)}catch{}cv.hidden=!on;if(on){size();kick()}else{if(raf)cancelAnimationFrame(raf);raf=0;bars.fill(0);playing=false}},
 meta(){const m=plyr.media;if(file&&m&&!audio&&m.videoWidth===0&&m.duration>0)this.mode(true)},
 play(p){playing=p;if(!audio)return;if(p){ensure().then(kick);kick()}else kick()},
 refresh(){if(!cv.hidden){size();kick()}}}})();
