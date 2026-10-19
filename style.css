@@ -1,4 +1,3 @@
-
 :root{color-scheme:dark;--g:linear-gradient(135deg,#6a121b 0%,#8f1a22 42%,#ef4136 100%);--gt:linear-gradient(120deg,#ff8a6b,#ef4136 55%,#b3202a);--bg:#0b0c10;--c:#171922;--t:#eceef5;--m:#9096aa;--b:#ffffff1f;--acc:#ef4136;--plyr-color-main:#ef4136}
 [data-theme=light]{color-scheme:light;--bg:#f2f4fa;--c:#ffffff;--t:#14161f;--m:#5d6378;--b:#14161f1f}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:16px/1.5 Inter,system-ui,sans-serif;transition:background .3s,color .3s}
@@ -115,10 +114,10 @@ section{margin:56px 0}.feat{display:grid;grid-template-columns:repeat(auto-fit,m
 70%{transform:none}
 82%{transform:translate(3px,0)}
 100%{transform:none}}
-html.glitch .nav,html.glitch main,html.glitch footer{animation:gl .6s steps(1) both}
+html.glitch .nav,html.glitch main,html.glitch footer{animation:gl .15s steps(1) both}
 html.glitch .btn,html.glitch .presets button{text-shadow:inherit}
-html.glitch :is(h1,h2,h3,p,label,small,li,.nav nav a,.btn,.presets button,.feat div,.drop strong):nth-child(2n){animation:gl2 .6s steps(1) both}
-html.glitch :is(h1,h2,h3,p,label,small,li,.nav nav a,.btn,.presets button,.feat div,.drop strong):nth-child(3n){animation:gl2 .6s steps(1) .07s both}
+html.glitch :is(h1,h2,h3,p,label,small,li,.nav nav a,.btn,.presets button,.feat div,.drop strong):nth-child(2n){animation:gl2 .15s steps(1) both}
+html.glitch :is(h1,h2,h3,p,label,small,li,.nav nav a,.btn,.presets button,.feat div,.drop strong):nth-child(3n){animation:gl2 .15s steps(1) .0175s both}
 @media(prefers-reduced-motion:reduce){html.glitch *{animation:none!important}}
 [data-lite] .toast,[data-lite] #dd{animation:none!important}
 /* Themed dropdown menus (replace the native select popup on desktop) */
@@ -134,3 +133,7 @@ html.gen .nav>*,html.gen main,html.gen footer{visibility:hidden}
 .gw0{opacity:0}
 .gw{animation:gen .38s ease-out both}
 @keyframes gen{from{opacity:0;filter:blur(6px)}to{opacity:1;filter:blur(0)}}
+
+/* Examples */
+.feat .ex{display:grid;gap:8px;align-content:start;justify-items:start;text-align:left}.ex .btn{margin-top:4px}
+html{scroll-padding-top:72px}
