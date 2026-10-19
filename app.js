@@ -26,13 +26,13 @@ aiff:P('Audio · AIFF','48 kHz PCM, big-endian.',{v:'none',a:'pcm24',c:'aiff',sr
 flac:P('Audio · FLAC','Lossless, smaller than WAV.',{v:'none',a:'pcm24',c:'flac',sr:'48000'})};
 const FEATS=['Any input format|Everything ffmpeg can read','Platform presets|YouTube, Reels, TikTok, X, Facebook…','Private|Files never leave your browser','Format menus|Codec, audio, container, size, fps','Dev menu|Command, logs, stats, file analysis','Audio spectrum|Simple bar visualizer in the accent colours','Lite mode|One switch turns off blur, glow and animations','Glass UI|Dark / light, Resolve gradient'];
 const EXS=[{t:'Video example',d:'In development',off:1},
-{t:'Sable — Massobeats',d:'Music track (MP3) — good for the audio presets and the spectrum.',u:'examples/massobeats-sable-freetouse.com.mp3',m:'audio/mpeg',c:'Music by Massobeats · <a href="https://freetouse.com/music">freetouse.com</a>'}];
+{t:'Sable — Massobeats',d:'Music track (MP3) — good for the audio presets and the spectrum.',u:'https://eu.data.freetouse.com/music/tracks/b84080cc-801e-46c8-94de-6ad02cae37d9/file/mp3',p:'https://freetouse.com/music/massobeats/sable',n:'massobeats-sable.mp3',m:'audio/mpeg',c:'Music by Massobeats · <a href="https://freetouse.com/music/massobeats/sable">freetouse.com</a>'}];
 const fill=(id,o)=>$(id).innerHTML=Object.entries(o).map(([k,v])=>`<option value="${k}">${Array.isArray(v)?v[0]:v}</option>`).join('');
 fill('#vc',VC);fill('#ac',AC);fill('#ct',CT);fill('#res',RES);fill('#fps',FPS);fill('#fit',FIT);fill('#sr',SR);
 $('#exList').innerHTML=EXS.map((x,i)=>`<div class="glass ex"><b>${x.t}</b><span class="muted">${x.d}</span>${x.c?`<small class="muted">${x.c}</small>`:''}<button class="btn" data-ex="${i}"${x.off?' disabled':''}>Try this example</button></div>`).join('');
 $('#exList').onclick=async e=>{const b=e.target.closest('[data-ex]');if(!b||b.disabled)return;const x=EXS[+b.dataset.ex];if(x.off)return;const t=b.textContent;b.disabled=true;b.textContent='Loading…';
-try{const r=await fetch(x.u);if(!r.ok)throw new Error('HTTP '+r.status);const bl=await r.blob();addFiles([new File([bl],x.u.split('/').pop(),{type:x.m})]);$('.grid').scrollIntoView({behavior:lite()?'auto':'smooth',block:'start'})}
-catch(err){toast('Could not load example ('+errMsg(err)+'). Serve the site over http and keep the file in /examples.',1)}
+try{const r=await fetch(x.u);if(!r.ok)throw new Error('HTTP '+r.status);const bl=await r.blob();addFiles([new File([bl],x.n,{type:x.m})]);$('.grid').scrollIntoView({behavior:lite()?'auto':'smooth',block:'start'})}
+catch(err){log('example: '+errMsg(err),'warn');window.open(x.p,'_blank','noopener');toast('Could not load the track directly — opened its Free To Use page. Download it and drop it here.',1)}
 finally{b.disabled=false;b.textContent=t}};
 $('#featList').innerHTML=FEATS.map(f=>{const[a,b]=f.split('|');return`<div class="glass"><b>${a}</b><br><span class="muted">${b}</span></div>`}).join('');
 let hz=0,items=[],sel=-1,ff,file,loaded=false,busy=false,url,lines=[],t0=0,inSize=0,outSize=0,elapsed=0,cap=null;const plyr=new Plyr('#player');
@@ -63,7 +63,7 @@ const OKX=/\.(mkv|mts|m2ts|flv|wmv|avi|ts|mxf|3gp|mov|mp4|webm|m4a|mp3|wav|flac|
 function rotv(){return items[sel]?items[sel].rot:''}
 const STL={'':'Pending',run:'Converting…',done:'Done',err:'Failed'};
 const upd=()=>{['#go','#frame','#analyze'].forEach(s=>$(s).disabled=busy||!file);$('#all').disabled=busy||!items.length};
-function render(){$('#queue').innerHTML=items.length?items.map((it,i)=>`<div class="q${i===sel?' on':''}" data-i="${i}"><span class="qn">${esc(it.f.name)}</span><small>${(it.f.size/1048576).toFixed(1)} MB</small><select data-r="${i}" title="Rotate this file">${Object.entries(ROT).map(([k,v])=>`<option value="${k}"${k===it.rot?' selected':''}>${v==='None'?'↻ No rotation':'↻ '+v}</option>`).join('')}</select><em class="st ${it.st}">${STL[it.st]}</em><b data-x="${i}" title="Remove">×</b></div>`).join(''):'<p class="muted">No media yet — add files or drop them above.</p>'}
+function render(){$('#queue').innerHTML=items.length?items.map((it,i)=>`<div class="q${i===sel?' on':''}" data-i="${i}"><span class="qn">${esc(it.f.name)}</span><small>${(it.f.size/1048576).toFixed(1)} MB</small>${isAud(it.f)?'':`<select data-r="${i}" title="Rotate this file">${Object.entries(ROT).map(([k,v])=>`<option value="${k}"${k===it.rot?' selected':''}>${v==='None'?'↻ No rotation':'↻ '+v}</option>`).join('')}</select>`}<em class="st ${it.st}">${STL[it.st]}</em><b data-x="${i}" title="Remove">×</b></div>`).join(''):'<p class="muted">No media yet — add files or drop them above.</p>'}
 function choose(i){sel=i;file=items[i]&&items[i].f;render();if(!file){$('#fname').textContent='No file selected';$('#info').textContent='File info appears after loading a file.';try{plyr.stop()}catch{}spec.mode(false);upd();refresh();return}
 inSize=file.size;outSize=0;elapsed=0;$('#fname').textContent=items.length>1?`${items.length} files queued`:file.name;if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(file);
 spec.mode(isAud(file));plyr.source={type:'video',sources:[{src:url,type:file.type||'video/mp4'}]};$('#info').textContent=`${file.name}\n${(file.size/1048576).toFixed(1)} MB · ${file.type||'unknown type'}`;log(`Selected ${file.name} (${file.size} bytes, ${file.type||'?'})`,'ok');
@@ -120,10 +120,13 @@ const spec=(()=>{
 const NB=48;
 const cv=document.createElement('canvas');cv.id='spec';cv.hidden=true;cv.setAttribute('aria-hidden','true');const g=cv.getContext('2d');
 const bars=new Float32Array(NB),edges=new Int32Array(NB+1);
-let ac,an,node,el,bins,W=0,H=0,dpr=1,raf=0,last=0,audio=false,playing=false,busy=0,ctl=72;
+let ac,an,node,el,bins,W=0,H=0,dpr=1,raf=0,last=0,audio=false,playing=false,busy=0,bl=0;
 const host=()=>{const c=plyr.elements&&plyr.elements.container;if(c&&cv.parentNode!==c)c.append(cv)};
 function size(){const r=cv.getBoundingClientRect();W=Math.round(r.width);H=Math.round(r.height);if(!W||!H)return;
-const c=plyr.elements&&plyr.elements.controls;ctl=Math.max(60,(c?c.offsetHeight:0)+16);dpr=lite()?1:Math.min(devicePixelRatio||1,2);cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0)}
+/* baseline = just above the top of the first .plyr__controls__item (offsetTop ignores the auto-hide transform) */
+const c=plyr.elements&&plyr.elements.controls;let b=H-72;
+if(c){let top=1e9;const cr=c.getBoundingClientRect();c.querySelectorAll('.plyr__controls__item').forEach(i=>{const r=i.getBoundingClientRect();if(r.height&&r.top<top)top=r.top});if(top<1e9)b=c.offsetTop+(top-cr.top)-8}
+bl=Math.max(H*.3,Math.min(H-24,b));dpr=lite()?1:Math.min(devicePixelRatio||1,2);cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0)}
 function bandEdges(){const lo=2,hi=Math.min(an.frequencyBinCount-1,700),k=Math.pow(hi/lo,1/NB);edges[0]=lo;for(let i=0;i<NB;i++)edges[i+1]=Math.max(edges[i]+1,Math.round(lo*Math.pow(k,i+1)))}
 async function ensure(){if(!audio||!plyr.media)return false;if(el===plyr.media&&node)return true;if(busy)return false;busy=1;
 try{const AC=window.AudioContext||window.webkitAudioContext;ac=ac||new AC();if(ac.state!=='running')await ac.resume();if(ac.state!=='running')return false;
@@ -138,7 +141,7 @@ const ak=1-Math.exp(-dt*28),rk=1-Math.exp(-dt*7);let mx=0;
 for(let i=0;i<NB;i++){let v=0;if(live){for(let k=edges[i],e=edges[i+1];k<e;k++)if(bins[k]>v)v=bins[k];v=Math.min(1,Math.pow(v/255,1.3)*(.85+.9*i/NB))}
 bars[i]+=(v-bars[i])*(v>bars[i]?ak:rk);if(bars[i]>mx)mx=bars[i]}
 g.clearRect(0,0,W,H);
-const padX=Math.max(14,W*.05),base=H-ctl,maxH=Math.max(20,base-H*.1),slot=(W-padX*2)/NB,bw=Math.max(2,slot*.66),rad=bw/2;
+const padX=Math.max(14,W*.05),base=bl,maxH=Math.max(20,base-H*.1),slot=(W-padX*2)/NB,bw=Math.max(2,slot*.66),rad=bw/2;
 const gr=g.createLinearGradient(0,base,0,base-maxH);gr.addColorStop(0,'#b3202a');gr.addColorStop(.45,'#ef4136');gr.addColorStop(.8,'#ff8a6b');gr.addColorStop(1,'#f7c01d');
 g.fillStyle=gr;if(!L){g.shadowColor='rgba(239,65,54,.55)';g.shadowBlur=12}
 g.beginPath();
@@ -152,7 +155,7 @@ mode(on){audio=on;host();cv.hidden=!on;if(on){size();kick()}else{if(raf)cancelAn
 meta(){const m=plyr.media;if(file&&m&&!audio&&m.videoWidth===0&&m.duration>0)this.mode(true)},
 play(p){playing=p;if(!audio)return;if(p){ensure().then(kick);kick()}else kick()},
 refresh(){if(!cv.hidden){size();kick()}}}})();
-plyr.on('loadedmetadata',()=>spec.meta());plyr.on('play',()=>spec.play(true));plyr.on('playing',()=>spec.play(true));plyr.on('pause',()=>spec.play(false));plyr.on('ended',()=>spec.play(false));
+plyr.on('ready',()=>spec.refresh());plyr.on('loadedmetadata',()=>spec.meta());plyr.on('play',()=>spec.play(true));plyr.on('playing',()=>spec.play(true));plyr.on('pause',()=>spec.play(false));plyr.on('ended',()=>spec.play(false));
 
 /* ---------- Lite mode (disable UI effects) ---------- */
 function glitch(){if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;html.classList.remove('glitch');void html.offsetWidth;html.classList.add('glitch');setTimeout(()=>html.classList.remove('glitch'),175)}
