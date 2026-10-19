@@ -42,8 +42,8 @@ function log(s,c){const d=document.createElement('div');c=c||(/error|invalid|fai
 function stats(){const mb=n=>n?(n/1048576).toFixed(2)+' MB':'–';$('#stats').innerHTML=[['Engine',loaded?'ready':'not loaded'],['Isolated',self.crossOriginIsolated?'yes':'no (single thread)'],['Input',mb(inSize)],['Output',mb(outSize)],['Ratio',inSize&&outSize?(outSize/inSize).toFixed(2)+'×':'–'],['Elapsed',elapsed?(elapsed/1000).toFixed(1)+' s':'–'],['Display refresh',hz?hz+' Hz (animations run at this rate)':'measuring…']].map(([a,b])=>`<div>${a}<b>${b}</b></div>`).join('')}
 function mk(){ff=new FFmpeg();ff.on('log',({message})=>{log(message);if(cap)cap.push(message)});ff.on('progress',({progress})=>{const p=Math.min(100,Math.max(0,Math.round((progress||0)*100)));$('#pb').style.width=p+'%';$('#pt').textContent=p+'%'})}mk();
 async function reset(){try{ff.terminate()}catch{}loaded=false;mk();stats()}
-async function load(){if(loaded)return;toast('Loading engine (~30 MB, cached after)…');log('Loading ffmpeg core 0.12.6','ok');const b=CDN+'@ffmpeg/core@0.12.6/dist/umd/';
-await ff.load({coreURL:await toBlobURL(b+'ffmpeg-core.js','text/javascript'),wasmURL:await toBlobURL(b+'ffmpeg-core.wasm','application/wasm'),classWorkerURL:await toBlobURL(CDN+'@ffmpeg/ffmpeg@0.12.10/dist/umd/814.ffmpeg.js','text/javascript')});loaded=true;log('Engine ready','ok');stats()}
+async function load(){if(loaded)return;toast('Loading engine (~30 MB, cached after)…');log('Loading ffmpeg core 0.12.6','ok');const b=CDN+'@ffmpeg/core@0.12.6/dist/',cls=await toBlobURL(CDN+'@ffmpeg/ffmpeg@0.12.10/dist/umd/814.ffmpeg.js','text/javascript'),wasmURL=await toBlobURL(b+'umd/ffmpeg-core.wasm','application/wasm');let err;
+for(const k of ['esm','umd']){try{const coreURL=await toBlobURL(b+k+'/ffmpeg-core.js','text/javascript');await ff.load({coreURL,wasmURL,classWorkerURL:cls});loaded=true;log('Engine ready ('+k+' core)','ok');stats();return}catch(e){err=e;log(k+' core failed: '+errMsg(e),'warn');try{ff.terminate()}catch{}mk()}}throw err}
 const IN=()=>{const x=(file.name.split('.').pop()||'').toLowerCase();return'in.'+(/^[a-z0-9]{1,5}$/.test(x)?x:'bin')};
 const AUD={wav:{pcm16:'pcm_s16le',pcm24:'pcm_s24le'},aiff:{pcm16:'pcm_s16be',pcm24:'pcm_s24be'}};
 function setCT(noV){const s=$('#ct'),k=noV?'a':'v';if(s.dataset.k===k)return;const cur=s.value;fill('#ct',noV?CTA:CT);s.dataset.k=k;if([...s.options].some(o=>o.value===cur))s.value=cur}
@@ -151,7 +151,7 @@ if(playing||mx>.004)raf=requestAnimationFrame(frame)}
 const kick=()=>{if(!raf&&!cv.hidden){last=performance.now();raf=requestAnimationFrame(frame)}};
 new ResizeObserver(()=>{if(!cv.hidden){size();kick()}}).observe(cv);
 return{cv,
-mode(on){audio=on;host();try{plyr.config.hideControls=!on;if(on)plyr.toggleControls(true)}catch{}cv.hidden=!on;if(on){size();kick()}else{if(raf)cancelAnimationFrame(raf);raf=0;bars.fill(0);playing=false}},
+mode(on){audio=on;host();try{plyr.config.hideControls=!on;const c=plyr.elements&&plyr.elements.container;c&&c.classList.toggle('aud',on);if(on)plyr.toggleControls(true)}catch{}cv.hidden=!on;if(on){size();kick()}else{if(raf)cancelAnimationFrame(raf);raf=0;bars.fill(0);playing=false}},
 meta(){const m=plyr.media;if(file&&m&&!audio&&m.videoWidth===0&&m.duration>0)this.mode(true)},
 play(p){playing=p;if(!audio)return;if(p){ensure().then(kick);kick()}else kick()},
 refresh(){if(!cv.hidden){size();kick()}}}})();
@@ -211,3 +211,7 @@ genText();
 
 /* ---------- measure the real display refresh rate (all animations are rAF/compositor driven, so they follow it) ---------- */
 (()=>{const d=[];let p=0;const f=t=>{if(p)d.push(t-p);p=t;if(d.length<45)requestAnimationFrame(f);else{d.sort((a,b)=>a-b);const m=d[d.length>>1];hz=Math.round(1000/m);log(`display refresh ≈ ${hz} Hz`,'ok');stats()}};requestAnimationFrame(f)})();
+
+/* ---------- Smooth scroll for header nav ---------- */
+document.querySelector('header.nav').addEventListener('click',e=>{const l=e.target.closest('a[href^="#"]');if(!l)return;e.preventDefault();const id=l.getAttribute('href').slice(1),el=id?document.getElementById(id):null,sm=!lite()&&!matchMedia('(prefers-reduced-motion:reduce)').matches;
+if(el)el.scrollIntoView({behavior:sm?'smooth':'auto',block:'start'});else scrollTo({top:0,behavior:sm?'smooth':'auto'});try{history.replaceState(null,'',id?'#'+id:location.pathname)}catch{}});
