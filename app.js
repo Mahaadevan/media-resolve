@@ -212,6 +212,10 @@ genText();
 /* ---------- measure the real display refresh rate (all animations are rAF/compositor driven, so they follow it) ---------- */
 (()=>{const d=[];let p=0;const f=t=>{if(p)d.push(t-p);p=t;if(d.length<45)requestAnimationFrame(f);else{d.sort((a,b)=>a-b);const m=d[d.length>>1];hz=Math.round(1000/m);log(`display refresh ≈ ${hz} Hz`,'ok');stats()}};requestAnimationFrame(f)})();
 
-/* ---------- Smooth scroll for header nav ---------- */
-document.querySelector('header.nav').addEventListener('click',e=>{const l=e.target.closest('a[href^="#"]');if(!l)return;e.preventDefault();const id=l.getAttribute('href').slice(1),el=id?document.getElementById(id):null,sm=!lite()&&!matchMedia('(prefers-reduced-motion:reduce)').matches;
-if(el)el.scrollIntoView({behavior:sm?'smooth':'auto',block:'start'});else scrollTo({top:0,behavior:sm?'smooth':'auto'});try{history.replaceState(null,'',id?'#'+id:location.pathname)}catch{}});
+/* ---------- Smooth scroll for header nav (JS-animated, independent of CSS scroll-behavior) ---------- */
+let sy=0;function smooth(to){cancelAnimationFrame(sy);const from=scrollY,max=document.documentElement.scrollHeight-innerHeight;to=Math.max(0,Math.min(max,to));const d=to-from;if(lite()||!d||Math.abs(d)<2)return scrollTo(0,to);
+const T=Math.min(1100,350+Math.abs(d)*.25),t0=performance.now(),ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const st=t=>{const p=Math.min(1,(t-t0)/T);scrollTo(0,from+d*ease(p));if(p<1)sy=requestAnimationFrame(st)};sy=requestAnimationFrame(st)}
+['wheel','touchstart','keydown'].forEach(v=>addEventListener(v,()=>cancelAnimationFrame(sy),{passive:true}));
+document.querySelector('header.nav').addEventListener('click',e=>{const l=e.target.closest('a[href^="#"]');if(!l)return;e.preventDefault();const id=l.getAttribute('href').slice(1),el=id?document.getElementById(id):null;
+smooth(el?el.getBoundingClientRect().top+scrollY-72:0);try{history.replaceState(null,'',id?'#'+id:location.pathname)}catch{}});
