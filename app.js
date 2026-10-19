@@ -25,12 +25,12 @@ wav:P('Audio · WAV 24-bit','48 kHz PCM — safest audio for Resolve Free on Lin
 aiff:P('Audio · AIFF','48 kHz PCM, big-endian.',{v:'none',a:'pcm24',c:'aiff',sr:'48000'}),
 flac:P('Audio · FLAC','Lossless, smaller than WAV.',{v:'none',a:'pcm24',c:'flac',sr:'48000'})};
 const FEATS=['Any input format|Everything ffmpeg can read','Platform presets|YouTube, Reels, TikTok, X, Facebook…','Private|Files never leave your browser','Format menus|Codec, audio, container, size, fps','Dev menu|Command, logs, stats, file analysis','Audio spectrum|Simple bar visualizer in the accent colours','Lite mode|One switch turns off blur, glow and animations','Glass UI|Dark / light, Resolve gradient'];
-const EXS=[{t:'Big Buck Bunny',d:'Short animated film (H.264 video + AAC audio) — good for trying the video presets.',u:'examples/big-buck-bunny.mp4',m:'video/mp4',c:'© Blender Foundation · <a href="https://peach.blender.org/">peach.blender.org</a> · CC BY 3.0'},
+const EXS=[{t:'Video example',d:'In development',off:1},
 {t:'Sable — Massobeats',d:'Music track (MP3) — good for the audio presets and the spectrum.',u:'examples/massobeats-sable-freetouse.com.mp3',m:'audio/mpeg',c:'Music by Massobeats · <a href="https://freetouse.com/music">freetouse.com</a>'}];
 const fill=(id,o)=>$(id).innerHTML=Object.entries(o).map(([k,v])=>`<option value="${k}">${Array.isArray(v)?v[0]:v}</option>`).join('');
 fill('#vc',VC);fill('#ac',AC);fill('#ct',CT);fill('#res',RES);fill('#fps',FPS);fill('#fit',FIT);fill('#sr',SR);
-$('#exList').innerHTML=EXS.map((x,i)=>`<div class="glass ex"><b>${x.t}</b><span class="muted">${x.d}</span><small class="muted">${x.c}</small><button class="btn" data-ex="${i}">Try this example</button></div>`).join('');
-$('#exList').onclick=async e=>{const b=e.target.closest('[data-ex]');if(!b||b.disabled)return;const x=EXS[+b.dataset.ex],t=b.textContent;b.disabled=true;b.textContent='Loading…';
+$('#exList').innerHTML=EXS.map((x,i)=>`<div class="glass ex"><b>${x.t}</b><span class="muted">${x.d}</span>${x.c?`<small class="muted">${x.c}</small>`:''}<button class="btn" data-ex="${i}"${x.off?' disabled':''}>Try this example</button></div>`).join('');
+$('#exList').onclick=async e=>{const b=e.target.closest('[data-ex]');if(!b||b.disabled)return;const x=EXS[+b.dataset.ex];if(x.off)return;const t=b.textContent;b.disabled=true;b.textContent='Loading…';
 try{const r=await fetch(x.u);if(!r.ok)throw new Error('HTTP '+r.status);const bl=await r.blob();addFiles([new File([bl],x.u.split('/').pop(),{type:x.m})]);$('.grid').scrollIntoView({behavior:lite()?'auto':'smooth',block:'start'})}
 catch(err){toast('Could not load example ('+errMsg(err)+'). Serve the site over http and keep the file in /examples.',1)}
 finally{b.disabled=false;b.textContent=t}};
